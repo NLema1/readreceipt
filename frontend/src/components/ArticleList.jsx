@@ -1,6 +1,5 @@
 import Dot from "./Dot";
 import OutletLogo from "./OutletLogo";
-import { OUTLET_LABELS } from "../constants";
 
 function pickChangeTypeForRow(article) {
   if (article.max_severity > 0 && article.change_count > 0) {
@@ -46,10 +45,6 @@ export default function ArticleList({ articles, selectedId, onSelect, loading, e
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-xs text-muted">
                   <OutletLogo outlet={a.outlet} />
-                  <span className="uppercase tracking-wide">
-                    {OUTLET_LABELS[a.outlet] ?? a.outlet}
-                  </span>
-                  <span className="text-line">·</span>
                   <span>
                     {a.change_count} change{a.change_count === 1 ? "" : "s"}
                     {a.max_severity > 0 && <> · sev {a.max_severity}</>}

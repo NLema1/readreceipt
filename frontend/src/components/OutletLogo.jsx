@@ -1,35 +1,33 @@
-const OUTLET_BADGES = {
-  guardian: { label: "G", color: "#052962", title: "The Guardian" },
-  bbc:      { label: "BBC", color: "#BB1919", title: "BBC News" },
-  npr:      { label: "NPR", color: "#0388CC", title: "NPR" },
+const OUTLET_META = {
+  guardian: { src: "/logos/guardian.svg", title: "The Guardian" },
+  bbc:      { src: "/logos/bbc.svg",      title: "BBC News" },
+  npr:      { src: "/logos/npr.svg",      title: "NPR" },
 };
 
-export default function OutletLogo({ outlet }) {
-  const badge = OUTLET_BADGES[outlet];
-  if (!badge) return null;
+export default function OutletLogo({ outlet, size = "sm" }) {
+  const meta = OUTLET_META[outlet];
+  if (!meta) return null;
+  const heights = { sm: 12, md: 14, lg: 18 };
+  const px = heights[size] ?? heights.sm;
   return (
     <span
-      role="img"
-      aria-label={badge.title}
-      title={badge.title}
+      title={meta.title}
       style={{
-        background: badge.color,
-        color: "#ffffff",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: "4px",
-        fontSize: "10px",
-        fontWeight: 700,
-        letterSpacing: "0.05em",
-        padding: "2px 6px",
-        minWidth: "28px",
-        height: "18px",
-        lineHeight: 1,
+        background: "#ffffff",
+        borderRadius: "3px",
+        padding: "3px 5px",
         flexShrink: 0,
+        lineHeight: 0,
       }}
     >
-      {badge.label}
+      <img
+        src={meta.src}
+        alt={meta.title}
+        style={{ height: `${px}px`, width: "auto", display: "block" }}
+      />
     </span>
   );
 }

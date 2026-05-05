@@ -1,3 +1,4 @@
+import OutletLogo from "./OutletLogo";
 import { OUTLET_LABELS } from "../constants";
 
 const OUTLETS = ["guardian", "bbc", "npr"];
@@ -25,20 +26,25 @@ export default function FilterBar({ filters, onChange }) {
         <span className="text-text w-4 text-center">{filters.minSeverity}</span>
       </label>
       <div className="flex gap-1">
-        {OUTLETS.map((o) => (
-          <button
-            key={o}
-            onClick={() => toggleOutlet(o)}
-            className={
-              "px-2 py-0.5 rounded border text-xs " +
-              (filters.outlets.includes(o)
-                ? "bg-accent/20 border-accent text-text"
-                : "border-line text-muted hover:text-text")
-            }
-          >
-            {OUTLET_LABELS[o]}
-          </button>
-        ))}
+        {OUTLETS.map((o) => {
+          const active = filters.outlets.includes(o);
+          return (
+            <button
+              key={o}
+              onClick={() => toggleOutlet(o)}
+              aria-label={OUTLET_LABELS[o]}
+              aria-pressed={active}
+              className={
+                "p-1 rounded border transition-opacity " +
+                (active
+                  ? "border-accent opacity-100"
+                  : "border-line opacity-40 hover:opacity-100")
+              }
+            >
+              <OutletLogo outlet={o} size="md" />
+            </button>
+          );
+        })}
       </div>
       <select
         className="bg-panel border border-line rounded px-2 py-0.5 text-text"

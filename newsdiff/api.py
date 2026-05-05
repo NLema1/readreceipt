@@ -53,11 +53,20 @@ def build_app(*, engine) -> FastAPI:
         min_severity: int = Query(0, ge=0, le=5),
         outlet: Optional[str] = None,
         since: Optional[str] = None,
+        q: Optional[str] = None,
+        url: Optional[str] = None,
     ):
+        from newsdiff.url_utils import canonicalize_url
         since_dt = _resolve_since(since)
+        canonical_url = canonicalize_url(url) if url else None
         with session_scope(engine) as s:
             stats = list_articles_with_change_stats(
-                s, min_severity=min_severity, outlet=outlet, since=since_dt
+                s,
+                min_severity=min_severity,
+                outlet=outlet,
+                since=since_dt,
+                q=q,
+                url=canonical_url,
             )
             return [
                 {

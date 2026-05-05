@@ -87,3 +87,19 @@ def test_get_changes_recent(client, engine):
     body = r.json()
     assert len(body) == 1
     assert body[0]["change_type"] == "headline_change"
+
+
+def test_get_articles_q_filters_by_headline_substring(client, engine):
+    aid = _seed(engine)
+    r_match = client.get("/api/articles?min_severity=0&q=hello")
+    assert len(r_match.json()) == 1
+    r_miss = client.get("/api/articles?min_severity=0&q=banana")
+    assert r_miss.json() == []
+
+
+def test_get_articles_url_filter_exact_match(client, engine):
+    _seed(engine)
+    r_match = client.get("/api/articles?min_severity=0&url=https://example.com/a")
+    assert len(r_match.json()) == 1
+    r_miss = client.get("/api/articles?min_severity=0&url=https://example.com/missing")
+    assert r_miss.json() == []

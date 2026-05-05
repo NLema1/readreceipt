@@ -168,3 +168,88 @@ def test_list_articles_includes_change_count(engine):
         assert len(rows) == 1
         assert rows[0].change_count == 1
         assert rows[0].max_severity == 4
+
+
+def test_list_articles_change_count_zero_when_no_changes(engine):
+    now = datetime.now(timezone.utc)
+    with session_scope(engine) as s:
+        upsert_article(s, url="https://example.com/no-changes", outlet="guardian", now=now)
+    with session_scope(engine) as s:
+        rows = list_articles_with_change_stats(s, min_severity=0)
+        assert len(rows) == 1
+        assert rows[0].change_count == 0
+        assert rows[0].max_severity == 0
+
+
+def test_list_articles_min_severity_filter(engine):
+    now = datetime.now(timezone.utc)
+    with session_scope(engine) as s:
+        a_low = upsert_article(s, url="https://example.com/low", outlet="ap", now=now)
+        a_high = upsert_article(s, url="https://example.com/high", outlet="ap", now=now)
+        s.flush()
+        v_low_1 = Version(article_id=a_low.id, scraped_at=now, headline="h",
+                          body_text="b1", content_hash="1")
+        v_low_2 = Version(article_id=a_low.id, scraped_at=now + timedelta(hours=1),
+                          headline="h", body_text="b2", content_hash="2")
+        v_high_1 = Version(article_id=a_high.id, scraped_at=now, headline="h",
+                           body_text="b1", content_hash="3")
+        v_high_2 = Version(article_id=a_high.id, scraped_at=now + timedelta(hours=1),
+                           headline="h", body_text="b2", content_hash="4")
+        s.add_all([v_low_1, v_low_2, v_high_1, v_high_2])
+        s.flush()
+        s.add_all([
+            Change(article_id=a_low.id, from_version_id=v_low_1.id,
+                   to_version_id=v_low_2.id, change_type="addition", severity=2,
+                   summary="x", classified_at=now + timedelta(hours=1)),
+            Change(article_id=a_high.id, from_version_id=v_high_1.id,
+                   to_version_id=v_high_2.id, change_type="fact_change", severity=5,
+                   summary="x", classified_at=now + timedelta(hours=1)),
+        ])
+    with session_scope(engine) as s:
+        rows = list_articles_with_change_stats(s, min_severity=4)
+        assert len(rows) == 1
+        assert rows[0].article.url == "https://example.com/high"
+
+
+def test_list_articles_outlet_filter(engine):
+    now = datetime.now(timezone.utc)
+    with session_scope(engine) as s:
+        upsert_article(s, url="https://example.com/g", outlet="guardian", now=now)
+        upsert_article(s, url="https://example.com/a", outlet="ap", now=now)
+    with session_scope(engine) as s:
+        rows = list_articles_with_change_stats(s, outlet="ap")
+        assert len(rows) == 1
+        assert rows[0].article.outlet == "ap"
+
+
+def test_list_articles_ordered_by_most_recent_change_with_nullslast(engine):
+    now = datetime.now(timezone.utc)
+    with session_scope(engine) as s:
+        a_old = upsert_article(s, url="https://example.com/old", outlet="ap", now=now)
+        a_recent = upsert_article(s, url="https://example.com/recent", outlet="ap", now=now)
+        a_no_changes = upsert_article(s, url="https://example.com/none", outlet="ap", now=now)
+        s.flush()
+        v_old_1 = Version(article_id=a_old.id, scraped_at=now, headline="h",
+                          body_text="b1", content_hash="1")
+        v_old_2 = Version(article_id=a_old.id, scraped_at=now + timedelta(hours=1),
+                          headline="h", body_text="b2", content_hash="2")
+        v_rec_1 = Version(article_id=a_recent.id, scraped_at=now, headline="h",
+                          body_text="b1", content_hash="3")
+        v_rec_2 = Version(article_id=a_recent.id, scraped_at=now + timedelta(hours=1),
+                          headline="h", body_text="b2", content_hash="4")
+        s.add_all([v_old_1, v_old_2, v_rec_1, v_rec_2])
+        s.flush()
+        s.add_all([
+            Change(article_id=a_old.id, from_version_id=v_old_1.id,
+                   to_version_id=v_old_2.id, change_type="addition", severity=3,
+                   summary="x", classified_at=now - timedelta(days=1)),
+            Change(article_id=a_recent.id, from_version_id=v_rec_1.id,
+                   to_version_id=v_rec_2.id, change_type="addition", severity=3,
+                   summary="x", classified_at=now),
+        ])
+    with session_scope(engine) as s:
+        rows = list_articles_with_change_stats(s, min_severity=0)
+        urls = [r.article.url for r in rows]
+        assert urls[0] == "https://example.com/recent"
+        assert urls[1] == "https://example.com/old"
+        assert urls[2] == "https://example.com/none"

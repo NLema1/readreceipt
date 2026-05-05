@@ -10,11 +10,17 @@ const OUTLET_META = {
   sky:        { src: "/logos/sky.svg",        title: "Sky News" },
 };
 
+const SIZE_CONFIG = {
+  sm: { height: 12, padX: 5, padY: 3, radius: 3 },
+  md: { height: 14, padX: 6, padY: 4, radius: 3 },
+  lg: { height: 22, padX: 9, padY: 6, radius: 4 },
+  xl: { height: 28, padX: 11, padY: 7, radius: 5 },
+};
+
 export default function OutletLogo({ outlet, size = "sm" }) {
   const meta = OUTLET_META[outlet];
   if (!meta) return null;
-  const heights = { sm: 12, md: 14, lg: 18 };
-  const px = heights[size] ?? heights.sm;
+  const cfg = SIZE_CONFIG[size] ?? SIZE_CONFIG.sm;
   return (
     <span
       title={meta.title}
@@ -23,8 +29,8 @@ export default function OutletLogo({ outlet, size = "sm" }) {
         alignItems: "center",
         justifyContent: "center",
         background: "#ffffff",
-        borderRadius: "3px",
-        padding: "3px 5px",
+        borderRadius: `${cfg.radius}px`,
+        padding: `${cfg.padY}px ${cfg.padX}px`,
         flexShrink: 0,
         lineHeight: 0,
       }}
@@ -32,7 +38,7 @@ export default function OutletLogo({ outlet, size = "sm" }) {
       <img
         src={meta.src}
         alt={meta.title}
-        style={{ height: `${px}px`, width: "auto", display: "block" }}
+        style={{ height: `${cfg.height}px`, width: "auto", display: "block" }}
       />
     </span>
   );

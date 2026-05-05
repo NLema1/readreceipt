@@ -28,7 +28,7 @@ export default function FilterBar({ filters, onChange }) {
         />
         <span className="text-text w-4 text-center">{filters.minSeverity}</span>
       </label>
-      <div className="flex gap-1">
+      <div className="flex flex-wrap gap-2">
         {OUTLETS.map((o) => {
           const active = filters.outlets.includes(o);
           return (
@@ -44,7 +44,7 @@ export default function FilterBar({ filters, onChange }) {
                   : "border-line opacity-40 hover:opacity-100")
               }
             >
-              <OutletLogo outlet={o} size="md" />
+              <OutletLogo outlet={o} size="lg" />
             </button>
           );
         })}

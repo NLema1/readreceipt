@@ -1,39 +1,5 @@
-import { useState } from "react";
 import ChangeNode from "./ChangeNode";
 import Dot from "./Dot";
-import { CHANGE_TYPE_COLORS, CHANGE_TYPE_LABELS } from "../constants";
-
-function Legend() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="border-b border-line">
-      <button
-        className="w-full text-left px-4 py-2 text-xs uppercase tracking-wide text-muted hover:text-text"
-        onClick={() => setOpen((v) => !v)}
-      >
-        Legend {open ? "▾" : "▸"}
-      </button>
-      {open && (
-        <ul className="px-4 pb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted">
-          {Object.keys(CHANGE_TYPE_COLORS).map((k) => (
-            <li key={k} className="flex items-center gap-2">
-              <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  background: CHANGE_TYPE_COLORS[k],
-                  borderRadius: 9999,
-                  display: "inline-block",
-                }}
-              />
-              {CHANGE_TYPE_LABELS[k]}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 export default function Timeline({ article, loading, error, onClose }) {
   function BackButton() {
@@ -101,7 +67,6 @@ export default function Timeline({ article, loading, error, onClose }) {
           <span>tracked since {new Date(article.first_seen).toLocaleString()}</span>
         </div>
       </div>
-      <Legend />
       <div className="flex-1 overflow-auto relative">
         <div className="absolute left-4 top-0 bottom-0 w-px bg-line" />
         <ul>

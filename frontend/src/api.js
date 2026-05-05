@@ -1,12 +1,15 @@
 const BASE = "/api";
 
-export async function fetchArticles({ minSeverity = 2, outlet, since, q, url } = {}) {
+export async function fetchArticles({ minSeverity = 2, outlet, since, q, url, changeTypes } = {}) {
   const qs = new URLSearchParams();
   if (minSeverity != null) qs.set("min_severity", minSeverity);
   if (outlet) qs.set("outlet", outlet);
   if (since) qs.set("since", since);
   if (q) qs.set("q", q);
   if (url) qs.set("url", url);
+  if (changeTypes && changeTypes.length) {
+    for (const ct of changeTypes) qs.append("change_type", ct);
+  }
   const r = await fetch(`${BASE}/articles?${qs}`);
   if (!r.ok) throw new Error(`articles: ${r.status}`);
   return r.json();

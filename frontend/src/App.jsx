@@ -5,6 +5,7 @@ import FilterBar from "./components/FilterBar";
 import SearchBar from "./components/SearchBar";
 import { fetchArticle, fetchArticles } from "./api";
 import { usePolling } from "./usePolling";
+import { ALL_CHANGE_TYPES } from "./constants";
 
 function sinceParam(window) {
   if (window === "all") return "all";
@@ -35,6 +36,7 @@ export default function App() {
   const [filters, setFilters] = useState({
     minSeverity: 2,
     outlets: ALL_OUTLETS,
+    changeTypes: ALL_CHANGE_TYPES,
     window: "7d",
   });
   const [search, setSearch] = useState("");
@@ -43,6 +45,11 @@ export default function App() {
   const isUrl = looksLikeUrl(search);
   const queryUrl = isUrl ? normalizeUrlInput(search) : undefined;
   const queryText = !isUrl && search.trim() ? search.trim() : undefined;
+
+  const useChangeTypeFilter =
+    !search &&
+    filters.changeTypes.length > 0 &&
+    filters.changeTypes.length < ALL_CHANGE_TYPES.length;
 
   const articlesQuery = usePolling(
     () =>
@@ -53,11 +60,13 @@ export default function App() {
         since: search ? "all" : sinceParam(filters.window),
         q: queryText,
         url: queryUrl,
+        changeTypes: useChangeTypeFilter ? filters.changeTypes : undefined,
       }),
     30_000,
     [
       filters.minSeverity,
       filters.outlets.join(","),
+      filters.changeTypes.join(","),
       filters.window,
       queryText,
       queryUrl,

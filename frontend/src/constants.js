@@ -27,6 +27,16 @@ export const SEVERITY_SIZES = {
   5: 20,
 };
 
+export const ALL_CHANGE_TYPES = [
+  "headline_change",
+  "fact_change",
+  "quote_change",
+  "source_removed",
+  "addition",
+  "deletion",
+  "other",
+];
+
 export const OUTLET_LABELS = {
   guardian: "Guardian",
   bbc: "BBC",

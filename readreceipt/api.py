@@ -61,6 +61,7 @@ def build_app(*, engine) -> FastAPI:
         since: Optional[str] = None,
         q: Optional[str] = None,
         url: Optional[str] = None,
+        change_type: Optional[list[str]] = Query(None),
     ):
         from readreceipt.url_utils import canonicalize_url
         since_dt = _resolve_since(since)
@@ -73,6 +74,7 @@ def build_app(*, engine) -> FastAPI:
                 since=since_dt,
                 q=q,
                 url=canonical_url,
+                change_types=change_type,
             )
             return [
                 {

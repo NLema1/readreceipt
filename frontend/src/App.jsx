@@ -28,7 +28,10 @@ function normalizeUrlInput(s) {
 export default function App() {
   const [filters, setFilters] = useState({
     minSeverity: 2,
-    outlets: ["guardian", "bbc", "npr"],
+    outlets: [
+      "guardian", "bbc", "npr",
+      "aljazeera", "propublica", "nbc", "cbs", "thehill", "sky",
+    ],
     window: "7d",
   });
   const [search, setSearch] = useState("");

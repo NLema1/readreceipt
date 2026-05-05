@@ -31,4 +31,10 @@ export const OUTLET_LABELS = {
   guardian: "Guardian",
   bbc: "BBC",
   npr: "NPR",
+  aljazeera: "Al Jazeera",
+  propublica: "ProPublica",
+  nbc: "NBC News",
+  cbs: "CBS News",
+  thehill: "The Hill",
+  sky: "Sky News",
 };

@@ -1,7 +1,10 @@
 import OutletLogo from "./OutletLogo";
 import { OUTLET_LABELS } from "../constants";
 
-const OUTLETS = ["guardian", "bbc", "npr"];
+const OUTLETS = [
+  "guardian", "bbc", "npr",
+  "aljazeera", "propublica", "nbc", "cbs", "thehill", "sky",
+];
 
 export default function FilterBar({ filters, onChange }) {
   function setField(field, value) {

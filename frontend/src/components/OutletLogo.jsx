@@ -1,7 +1,13 @@
 const OUTLET_META = {
-  guardian: { src: "/logos/guardian.svg", title: "The Guardian" },
-  bbc:      { src: "/logos/bbc.svg",      title: "BBC News" },
-  npr:      { src: "/logos/npr.svg",      title: "NPR" },
+  guardian:   { src: "/logos/guardian.svg",   title: "The Guardian" },
+  bbc:        { src: "/logos/bbc.svg",        title: "BBC News" },
+  npr:        { src: "/logos/npr.svg",        title: "NPR" },
+  aljazeera:  { src: "/logos/aljazeera.svg",  title: "Al Jazeera English" },
+  propublica: { src: "/logos/propublica.svg", title: "ProPublica" },
+  nbc:        { src: "/logos/nbc.svg",        title: "NBC News" },
+  cbs:        { src: "/logos/cbs.svg",        title: "CBS News" },
+  thehill:    { src: "/logos/thehill.svg",    title: "The Hill" },
+  sky:        { src: "/logos/sky.svg",        title: "Sky News" },
 };
 
 export default function OutletLogo({ outlet, size = "sm" }) {

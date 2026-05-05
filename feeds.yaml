@@ -10,3 +10,15 @@
   url: https://feeds.npr.org/1001/rss.xml
 - outlet: npr
   url: https://feeds.npr.org/1004/rss.xml
+- outlet: aljazeera
+  url: https://www.aljazeera.com/xml/rss/all.xml
+- outlet: propublica
+  url: https://feeds.propublica.org/propublica/main
+- outlet: nbc
+  url: https://feeds.nbcnews.com/nbcnews/public/news
+- outlet: cbs
+  url: https://www.cbsnews.com/latest/rss/main
+- outlet: thehill
+  url: https://thehill.com/feed/
+- outlet: sky
+  url: https://feeds.skynews.com/feeds/rss/world.xml

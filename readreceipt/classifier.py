@@ -88,6 +88,107 @@ agreement to collapse.
   → meaning_preserved=false, change_type="quote_change", severity=4,
     summary="Quoted statement reversed: deal characterized as dead instead \
 of final."
+
+Example C — number change:
+  Old: "killed at least 12 people"
+  New: "killed at least 17 people"
+  A casualty count was revised upward. Both versions share the same hedge \
+("at least") and the same event, but the floor of the asserted number has \
+moved. This is a verifiable factual claim that has changed.
+  → meaning_preserved=false, change_type="fact_change", severity=4,
+    summary="Casualty count revised from at least 12 to at least 17."
+
+Example D — copy edit voice swap:
+  Old: "The bill was rejected by the committee."
+  New: "The committee rejected the bill."
+  Same actors, same outcome, just active voice instead of passive. The reader \
+draws no different conclusion. This is style cleanup.
+  → meaning_preserved=true, change_type="other", severity=2,
+    summary="Passive-to-active voice rewrite; same actors and outcome."
+
+Example E — added context, no claim shift:
+  Old: "The agency will review the policy next quarter."
+  New: "The agency, which has reviewed three similar policies since 2024, \
+will review the policy next quarter."
+  The new sentence adds background detail that does not change the central \
+assertion (a planned review). The added clause is verifiable but not the \
+focus of the edit.
+  → meaning_preserved=false, change_type="addition", severity=3,
+    summary="Added historical context about prior agency reviews; central \
+claim unchanged."
+
+Example F — source attribution removed:
+  Old: "according to two officials familiar with the negotiations"
+  New: (clause removed)
+  An attributed source was stripped, leaving the assertion unsourced. A \
+careful reader would weight the surrounding claim differently without the \
+attribution. This is editorially meaningful regardless of whether the \
+underlying fact is the same.
+  → meaning_preserved=false, change_type="source_removed", severity=3,
+    summary="Removed attribution to two officials, leaving the claim \
+unsourced."
+
+Example G — copy edit synonym swap:
+  Old: "released a statement strongly criticizing the proposal"
+  New: "issued a statement strongly criticizing the proposal"
+  "Released" and "issued" are interchangeable in this context. No actor, \
+target, or stance has changed.
+  → meaning_preserved=true, change_type="other", severity=2,
+    summary="Synonym swap (released → issued); meaning unchanged."
+
+Example H — headline reframe:
+  Old: "Senate weighs new restrictions on hedge funds"
+  New: "Senate moves to restrict hedge funds"
+  The first headline frames the story as deliberation; the second frames it \
+as forward motion. A reader infers different stages of progress, even if the \
+underlying article body did not change. This is a framing shift in the \
+headline specifically.
+  → meaning_preserved=false, change_type="headline_change", severity=3,
+    summary="Headline reframed from deliberation (\\"weighs\\") to action \
+(\\"moves to\\"); implies further progress than before."
+
+Example I — punctuation only:
+  Old: "However, the spokesperson denied the claim."
+  New: "However the spokesperson denied the claim."
+  A comma was removed. The sentence parses identically. This is below the \
+threshold of editorial significance and should normally have been filtered \
+before reaching you, but if it does reach you, treat it as cosmetic.
+  → meaning_preserved=true, change_type="other", severity=1,
+    summary="Comma removed after introductory adverb; no meaning change."
+
+Example J — borderline:
+  Old: "Critics worry the policy could harm small businesses."
+  New: "Critics warn the policy will harm small businesses."
+  "Could" → "will" tightens the modal claim from possibility to certainty. \
+"Worry" → "warn" shifts the action from a private feeling to a public \
+warning. Both lean toward stronger assertion. This is a meaning shift at \
+the level of stance — the article is now claiming critics are more confident \
+than before.
+  → meaning_preserved=false, change_type="other", severity=3,
+    summary="Modal tightened from possibility to certainty; critics' stance \
+characterized as more confident."
+
+GUIDANCE ON BORDERLINE CASES
+
+When a change could plausibly read either as copy edit or as meaning shift, \
+err toward copy edit unless you can name the specific verifiable claim or \
+framing that has changed. Vague unease about a wording difference is not \
+sufficient to flag it as a meaning shift.
+
+When the headline changes but the body does not, evaluate the headline \
+change on its own. A headline reframe is editorially meaningful even if no \
+body fact moved, because the headline is what most readers see.
+
+When a body change adds or removes a paragraph, ask whether the central \
+claim of the article has changed, or only the supporting context. \
+Addition/deletion of supporting context is severity 2-3 depending on \
+whether the context affected interpretation. Addition/deletion of a central \
+claim is severity 4-5.
+
+When a direct quotation changes, distinguish: the same speaker saying \
+something different (quote_change, often severity 4) versus paraphrasing \
+that preserves meaning (other, severity 2) versus a quotation being moved \
+to a different speaker (fact_change, severity 4-5).
 """
 
 CLASSIFY_TOOL = {
@@ -133,6 +234,7 @@ CLASSIFY_TOOL = {
             },
         },
     },
+    "cache_control": {"type": "ephemeral"},
 }
 
 

@@ -87,7 +87,7 @@ export default function App() {
           That URL isn't currently tracked. Try a headline search instead, or wait until it's picked up by an RSS feed.
         </div>
       )}
-      <main className="flex-1 grid grid-cols-[360px_1fr] overflow-hidden">
+      <main className="flex-1 grid grid-cols-[480px_1fr] overflow-hidden">
         <aside className="border-r border-line overflow-auto">
           <ArticleList
             articles={articles}

@@ -11,7 +11,7 @@ This is a real-product attempt: deployed publicly, intended for outside users, i
 
 ## Why
 
-ReadReceipts (2012) captured diffs but drowned users in noise. LLMs now make automated significance-ranking cheap and viable, so we can show only the edits that matter.
+NewsDiffs (2012) captured diffs but drowned users in noise. LLMs now make automated significance-ranking cheap and viable, so we can show only the edits that matter.
 
 ## MVP Scope
 

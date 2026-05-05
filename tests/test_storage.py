@@ -253,3 +253,55 @@ def test_list_articles_ordered_by_most_recent_change_with_nullslast(engine):
         assert urls[0] == "https://example.com/recent"
         assert urls[1] == "https://example.com/old"
         assert urls[2] == "https://example.com/none"
+
+
+from newsdiff.storage import articles_due_for_rescrape
+
+
+def test_articles_due_recent_uses_30min_threshold(engine):
+    now = datetime.now(timezone.utc)
+    with session_scope(engine) as s:
+        recent = upsert_article(
+            s, url="https://example.com/recent", outlet="guardian", now=now
+        )
+        recent.last_checked = now - timedelta(hours=1)
+        s.flush()
+    with session_scope(engine) as s:
+        due = articles_due_for_rescrape(s, now=now)
+        assert any(a.id == recent.id for a in due)
+
+
+def test_articles_due_old_uses_2h_threshold(engine):
+    now = datetime.now(timezone.utc)
+    article_first_seen = now - timedelta(days=2)
+    with session_scope(engine) as s:
+        old = Article(
+            url="https://example.com/old", outlet="guardian",
+            first_seen=article_first_seen,
+            last_checked=now - timedelta(minutes=45),
+            tracking_until=article_first_seen + timedelta(days=7),
+            current_headline="",
+        )
+        s.add(old)
+        s.flush()
+        old_id = old.id
+    with session_scope(engine) as s:
+        due = articles_due_for_rescrape(s, now=now)
+        assert not any(a.id == old_id for a in due)
+
+
+def test_articles_past_tracking_window_excluded(engine):
+    now = datetime.now(timezone.utc)
+    with session_scope(engine) as s:
+        expired = Article(
+            url="https://example.com/expired", outlet="ap",
+            first_seen=now - timedelta(days=10),
+            last_checked=now - timedelta(hours=10),
+            tracking_until=now - timedelta(days=3),
+            current_headline="",
+        )
+        s.add(expired)
+        s.flush()
+    with session_scope(engine) as s:
+        due = articles_due_for_rescrape(s, now=now)
+        assert not any(a.url.endswith("/expired") for a in due)

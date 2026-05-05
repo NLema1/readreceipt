@@ -174,3 +174,19 @@ def list_articles_with_change_stats(
         ArticleStats(article=row[0], change_count=row[1], max_severity=row[2])
         for row in rows
     ]
+
+
+def articles_due_for_rescrape(session: Session, *, now: datetime) -> list[Article]:
+    def _aware(dt: datetime) -> datetime:
+        return dt if dt.tzinfo is not None else dt.replace(tzinfo=now.tzinfo)
+
+    candidates = list(session.execute(select(Article)).scalars())
+    out = []
+    for a in candidates:
+        if _aware(a.tracking_until) <= now:
+            continue
+        age = (now - _aware(a.first_seen)).total_seconds()
+        threshold = 1800 if age < 86400 else 7200
+        if (now - _aware(a.last_checked)).total_seconds() >= threshold:
+            out.append(a)
+    return out

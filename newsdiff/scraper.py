@@ -43,5 +43,5 @@ def fetch_url(url: str, *, timeout: float = 15.0) -> Optional[str]:
         resp = httpx.get(url, headers=headers, timeout=timeout, follow_redirects=True)
         resp.raise_for_status()
         return resp.text
-    except (httpx.HTTPError, httpx.TimeoutException):
+    except httpx.HTTPError:
         return None

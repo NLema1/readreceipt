@@ -1,10 +1,12 @@
 const BASE = "/api";
 
-export async function fetchArticles({ minSeverity = 2, outlet, since } = {}) {
+export async function fetchArticles({ minSeverity = 2, outlet, since, q, url } = {}) {
   const qs = new URLSearchParams();
   if (minSeverity != null) qs.set("min_severity", minSeverity);
   if (outlet) qs.set("outlet", outlet);
   if (since) qs.set("since", since);
+  if (q) qs.set("q", q);
+  if (url) qs.set("url", url);
   const r = await fetch(`${BASE}/articles?${qs}`);
   if (!r.ok) throw new Error(`articles: ${r.status}`);
   return r.json();

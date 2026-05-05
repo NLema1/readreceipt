@@ -95,3 +95,47 @@ def test_classify_change_truncates_long_bodies():
     args, kwargs = fake_client.messages.create.call_args
     user_text = kwargs["messages"][0]["content"]
     assert len(user_text) < 60_000
+
+
+def test_classify_change_sends_correct_request_shape():
+    fake_block = MagicMock()
+    fake_block.type = "tool_use"
+    fake_block.name = "classify_change"
+    fake_block.input = {
+        "change_type": "addition",
+        "severity": 2,
+        "summary": "x",
+    }
+    fake_response = MagicMock()
+    fake_response.content = [fake_block]
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+
+    classify_change(
+        client=fake_client,
+        old_headline="h", old_body="a",
+        new_headline="h", new_body="b",
+    )
+
+    _, kwargs = fake_client.messages.create.call_args
+    assert kwargs["model"] == "claude-haiku-4-5"
+    assert kwargs["tool_choice"] == {"type": "tool", "name": "classify_change"}
+    assert kwargs["system"][0]["cache_control"] == {"type": "ephemeral"}
+    assert kwargs["tools"][0]["name"] == "classify_change"
+
+
+def test_classify_change_raises_when_model_does_not_call_tool():
+    text_block = MagicMock()
+    text_block.type = "text"
+    text_block.text = "I cannot help with that."
+    fake_response = MagicMock()
+    fake_response.content = [text_block]
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+
+    with pytest.raises(ClassifierError):
+        classify_change(
+            client=fake_client,
+            old_headline="h", old_body="a",
+            new_headline="h", new_body="b",
+        )

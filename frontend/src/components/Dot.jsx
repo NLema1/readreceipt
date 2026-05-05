@@ -4,6 +4,7 @@ export default function Dot({ changeType, severity, hollow = false }) {
   const size = SEVERITY_SIZES[severity] ?? 9;
   const color = CHANGE_TYPE_COLORS[changeType] ?? "#737373";
   const style = {
+    display: "inline-block",
     width: `${size}px`,
     height: `${size}px`,
     borderRadius: "9999px",

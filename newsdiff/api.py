@@ -13,6 +13,12 @@ from newsdiff.storage import (
 )
 
 
+def _iso_utc(dt: datetime) -> str:
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat()
+
+
 def _serialize_change(c: Change) -> dict:
     return {
         "id": c.id,
@@ -21,14 +27,14 @@ def _serialize_change(c: Change) -> dict:
         "change_type": c.change_type,
         "severity": c.severity,
         "summary": c.summary,
-        "classified_at": c.classified_at.isoformat(),
+        "classified_at": _iso_utc(c.classified_at),
     }
 
 
 def _serialize_version(v: Version) -> dict:
     return {
         "id": v.id,
-        "scraped_at": v.scraped_at.isoformat(),
+        "scraped_at": _iso_utc(v.scraped_at),
         "headline": v.headline,
         "body_text": v.body_text,
     }
@@ -74,8 +80,8 @@ def build_app(*, engine) -> FastAPI:
                     "url": row.article.url,
                     "outlet": row.article.outlet,
                     "headline": row.article.current_headline,
-                    "first_seen": row.article.first_seen.isoformat(),
-                    "tracking_until": row.article.tracking_until.isoformat(),
+                    "first_seen": _iso_utc(row.article.first_seen),
+                    "tracking_until": _iso_utc(row.article.tracking_until),
                     "change_count": row.change_count,
                     "max_severity": row.max_severity,
                 }
@@ -103,8 +109,8 @@ def build_app(*, engine) -> FastAPI:
                 "url": article.url,
                 "outlet": article.outlet,
                 "headline": article.current_headline,
-                "first_seen": article.first_seen.isoformat(),
-                "tracking_until": article.tracking_until.isoformat(),
+                "first_seen": _iso_utc(article.first_seen),
+                "tracking_until": _iso_utc(article.tracking_until),
                 "versions": [_serialize_version(v) for v in versions],
                 "changes": [_serialize_change(c) for c in changes],
             }

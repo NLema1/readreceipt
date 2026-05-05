@@ -103,3 +103,24 @@ def test_get_articles_url_filter_exact_match(client, engine):
     assert len(r_match.json()) == 1
     r_miss = client.get("/api/articles?min_severity=0&url=https://example.com/missing")
     assert r_miss.json() == []
+
+
+def test_serialized_timestamps_carry_utc_offset(client, engine):
+    aid = _seed(engine)
+    r = client.get(f"/api/articles/{aid}")
+    body = r.json()
+    assert body["first_seen"].endswith("+00:00") or body["first_seen"].endswith("Z")
+    assert body["tracking_until"].endswith("+00:00") or body["tracking_until"].endswith("Z")
+    for v in body["versions"]:
+        assert v["scraped_at"].endswith("+00:00") or v["scraped_at"].endswith("Z")
+    for c in body["changes"]:
+        assert c["classified_at"].endswith("+00:00") or c["classified_at"].endswith("Z")
+
+    r2 = client.get("/api/articles?min_severity=0")
+    for row in r2.json():
+        assert row["first_seen"].endswith("+00:00") or row["first_seen"].endswith("Z")
+        assert row["tracking_until"].endswith("+00:00") or row["tracking_until"].endswith("Z")
+
+    r3 = client.get("/api/changes/recent?min_severity=0")
+    for row in r3.json():
+        assert row["classified_at"].endswith("+00:00") or row["classified_at"].endswith("Z")

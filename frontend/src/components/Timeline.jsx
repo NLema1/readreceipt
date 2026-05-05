@@ -35,12 +35,39 @@ function Legend() {
   );
 }
 
-export default function Timeline({ article, loading, error }) {
+export default function Timeline({ article, loading, error, onClose }) {
+  function BackButton() {
+    if (!onClose) return null;
+    return (
+      <button
+        onClick={onClose}
+        className="md:hidden text-text px-2 py-1 -ml-2 hover:bg-panel rounded"
+        aria-label="Back to article list"
+      >
+        ←
+      </button>
+    );
+  }
+
   if (loading && !article) {
-    return <div className="p-4 text-muted">Loading…</div>;
+    return (
+      <div className="h-full flex flex-col">
+        <div className="px-4 py-3 border-b border-line flex items-center gap-2 md:hidden">
+          <BackButton />
+        </div>
+        <div className="p-4 text-muted">Loading…</div>
+      </div>
+    );
   }
   if (error) {
-    return <div className="p-4 text-red-400">Error: {error.message}</div>;
+    return (
+      <div className="h-full flex flex-col">
+        <div className="px-4 py-3 border-b border-line flex items-center gap-2 md:hidden">
+          <BackButton />
+        </div>
+        <div className="p-4 text-red-400">Error: {error.message}</div>
+      </div>
+    );
   }
   if (!article) {
     return (
@@ -56,19 +83,22 @@ export default function Timeline({ article, loading, error }) {
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b border-line">
-        <h2 className="text-lg font-medium text-text">{article.headline || article.url}</h2>
-        <div className="text-xs text-muted mt-1 flex items-center gap-2">
-          <span>{article.outlet}</span>
-          <span>·</span>
-          <span>tracked since {new Date(article.first_seen).toLocaleString()}</span>
+        <div className="flex items-start gap-2">
+          <BackButton />
+          <h2 className="text-lg font-medium text-text flex-1">{article.headline || article.url}</h2>
           <a
             href={article.url}
             target="_blank"
             rel="noreferrer"
-            className="ml-auto text-accent hover:underline"
+            className="text-accent hover:underline text-sm whitespace-nowrap"
           >
             open ↗
           </a>
+        </div>
+        <div className="text-xs text-muted mt-1 flex items-center gap-2">
+          <span>{article.outlet}</span>
+          <span>·</span>
+          <span>tracked since {new Date(article.first_seen).toLocaleString()}</span>
         </div>
       </div>
       <Legend />

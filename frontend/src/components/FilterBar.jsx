@@ -17,19 +17,20 @@ export default function FilterBar({ filters, onChange }) {
     setField("outlets", [...set]);
   }
   return (
-    <div className="flex items-center gap-4 px-4 py-2 border-b border-line text-sm">
+    <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 px-4 py-3 border-b border-line text-sm">
       <label className="flex items-center gap-2">
-        <span className="text-muted">Min severity</span>
+        <span className="text-muted whitespace-nowrap">Min severity</span>
         <input
           type="range"
           min="0"
           max="5"
           value={filters.minSeverity}
           onChange={(e) => setField("minSeverity", Number(e.target.value))}
+          className="flex-1 md:flex-initial"
         />
         <span className="text-text w-4 text-center">{filters.minSeverity}</span>
       </label>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 overflow-x-auto md:flex-wrap md:overflow-visible -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory pb-1 md:pb-0">
         {OUTLETS.map((o) => {
           const active = filters.outlets.includes(o);
           return (
@@ -39,7 +40,7 @@ export default function FilterBar({ filters, onChange }) {
               aria-label={OUTLET_LABELS[o]}
               aria-pressed={active}
               className={
-                "p-1 rounded border transition-opacity " +
+                "p-1 rounded border transition-opacity flex-shrink-0 snap-start " +
                 (active
                   ? "border-accent opacity-100"
                   : "border-line opacity-40 hover:opacity-100")
@@ -51,7 +52,7 @@ export default function FilterBar({ filters, onChange }) {
         })}
       </div>
       <select
-        className="bg-panel border border-line rounded px-2 py-0.5 text-text"
+        className="bg-panel border border-line rounded px-2 py-1 text-text self-start md:self-auto"
         value={filters.window}
         onChange={(e) => setField("window", e.target.value)}
       >

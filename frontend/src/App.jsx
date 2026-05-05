@@ -25,14 +25,16 @@ function normalizeUrlInput(s) {
   return trimmed;
 }
 
+const ALL_OUTLETS = [
+  "guardian", "bbc", "npr",
+  "aljazeera", "propublica", "nbc", "cbs", "thehill", "sky",
+  "fox", "nypost",
+];
+
 export default function App() {
   const [filters, setFilters] = useState({
     minSeverity: 2,
-    outlets: [
-      "guardian", "bbc", "npr",
-      "aljazeera", "propublica", "nbc", "cbs", "thehill", "sky",
-      "fox", "nypost",
-    ],
+    outlets: ALL_OUTLETS,
     window: "7d",
   });
   const [search, setSearch] = useState("");
@@ -71,7 +73,10 @@ export default function App() {
   const articles = useMemo(() => {
     if (!articlesQuery.data) return null;
     if (search) return articlesQuery.data;
-    if (filters.outlets.length === 0 || filters.outlets.length === 3)
+    if (
+      filters.outlets.length === 0 ||
+      filters.outlets.length === ALL_OUTLETS.length
+    )
       return articlesQuery.data;
     return articlesQuery.data.filter((a) => filters.outlets.includes(a.outlet));
   }, [articlesQuery.data, filters.outlets, search]);
@@ -79,20 +84,27 @@ export default function App() {
   const showUrlNotTracked =
     isUrl && articlesQuery.data && articlesQuery.data.length === 0 && !articlesQuery.loading;
 
+  const showRight = selectedId !== null;
+  const leftHidden = showRight ? "hidden md:flex" : "flex";
+  const leftHiddenBlock = showRight ? "hidden md:block" : "block";
+  const rightHidden = showRight ? "block" : "hidden md:block";
+
   return (
     <div className="h-full flex flex-col">
-      <header className="px-4 py-3 border-b border-line flex items-center gap-4">
+      <header className={`px-4 py-3 border-b border-line items-center gap-4 ${leftHidden}`}>
         <div className="text-text font-mono text-lg">ReadReceipt</div>
         <SearchBar value={search} onChange={setSearch} isUrl={isUrl} />
       </header>
-      <FilterBar filters={filters} onChange={setFilters} />
+      <div className={leftHiddenBlock}>
+        <FilterBar filters={filters} onChange={setFilters} />
+      </div>
       {showUrlNotTracked && (
-        <div className="px-4 py-2 border-b border-line text-sm text-muted">
+        <div className={`px-4 py-2 border-b border-line text-sm text-muted ${leftHiddenBlock}`}>
           That URL isn't currently tracked. Try a headline search instead, or wait until it's picked up by an RSS feed.
         </div>
       )}
-      <main className="flex-1 grid grid-cols-[480px_1fr] overflow-hidden">
-        <aside className="border-r border-line overflow-auto">
+      <main className="flex-1 md:grid md:grid-cols-[480px_1fr] overflow-hidden">
+        <aside className={`md:border-r border-line overflow-auto ${leftHiddenBlock}`}>
           <ArticleList
             articles={articles}
             selectedId={selectedId}
@@ -101,11 +113,12 @@ export default function App() {
             error={articlesQuery.error}
           />
         </aside>
-        <section className="overflow-hidden">
+        <section className={`overflow-hidden ${rightHidden}`}>
           <Timeline
             article={articleQuery.data}
             loading={articleQuery.loading}
             error={articleQuery.error}
+            onClose={() => setSelectedId(null)}
           />
         </section>
       </main>

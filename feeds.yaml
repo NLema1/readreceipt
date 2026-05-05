@@ -1,0 +1,12 @@
+- outlet: guardian
+  url: https://www.theguardian.com/us-news/rss
+- outlet: guardian
+  url: https://www.theguardian.com/world/rss
+- outlet: ap
+  url: https://feeds.apnews.com/rss/topnews
+- outlet: ap
+  url: https://feeds.apnews.com/rss/politics
+- outlet: reuters
+  url: https://www.reuters.com/arc/outboundfeeds/rss/category/world/
+- outlet: reuters
+  url: https://www.reuters.com/arc/outboundfeeds/rss/category/business/

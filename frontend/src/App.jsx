@@ -103,8 +103,8 @@ export default function App() {
           That URL isn't currently tracked. Try a headline search instead, or wait until it's picked up by an RSS feed.
         </div>
       )}
-      <main className="flex-1 md:grid md:grid-cols-[480px_1fr] overflow-hidden">
-        <aside className={`md:border-r border-line overflow-auto ${leftHiddenBlock}`}>
+      <main className="flex-1 min-h-0 flex md:grid md:grid-cols-[480px_1fr] overflow-hidden">
+        <aside className={`flex-1 md:flex-none md:border-r border-line overflow-y-auto ${leftHiddenBlock}`}>
           <ArticleList
             articles={articles}
             selectedId={selectedId}
@@ -113,7 +113,7 @@ export default function App() {
             error={articlesQuery.error}
           />
         </aside>
-        <section className={`overflow-hidden ${rightHidden}`}>
+        <section className={`flex-1 md:flex-none overflow-hidden ${rightHidden}`}>
           <Timeline
             article={articleQuery.data}
             loading={articleQuery.loading}

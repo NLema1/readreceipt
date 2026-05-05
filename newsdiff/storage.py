@@ -18,6 +18,7 @@ from sqlalchemy.orm import (
     mapped_column,
     sessionmaker,
 )
+from sqlalchemy.pool import StaticPool
 
 
 class Base(DeclarativeBase):
@@ -74,7 +75,15 @@ class Change(Base):
 
 
 def create_engine_and_tables(database_url: str):
-    engine = create_engine(database_url, future=True)
+    if database_url.startswith("sqlite") and ":memory:" in database_url:
+        engine = create_engine(
+            database_url,
+            future=True,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    else:
+        engine = create_engine(database_url, future=True)
     Base.metadata.create_all(engine)
     return engine
 

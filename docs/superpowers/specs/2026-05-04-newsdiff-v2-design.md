@@ -15,7 +15,7 @@ NewsDiffs (2012) captured diffs but drowned users in noise. LLMs now make automa
 
 ## MVP Scope
 
-- Auto-track three outlets via RSS: **Guardian, AP (apnews.com), Reuters**
+- Auto-track three outlets via RSS: **Guardian, BBC, NPR**
 - (NYT and WaPo are excluded: paywalls would force ToS violations or partial-content workarounds.)
 - Snapshot articles every 30 minutes for the first 24 hours after first publish, then every 2 hours through day 7
 - Detect content changes, classify with Claude Haiku 4.5
@@ -79,7 +79,7 @@ Three tables.
 |---|---|---|
 | `id` | pk | |
 | `url` | text, unique | canonicalized — query params and fragments stripped |
-| `outlet` | enum | `guardian` \| `ap` \| `reuters` |
+| `outlet` | enum | `guardian` \| `bbc` \| `npr` |
 | `first_seen` | timestamp | first time URL appeared in any RSS feed |
 | `last_checked` | timestamp | last scrape attempt (success or failure) |
 | `tracking_until` | timestamp | `first_seen + 7 days` |
@@ -169,14 +169,14 @@ This collapses tracking-param duplicates that RSS feeds frequently emit.
   url: https://www.theguardian.com/us-news/rss
 - outlet: guardian
   url: https://www.theguardian.com/world/rss
-- outlet: ap
-  url: https://feeds.apnews.com/rss/topnews
-- outlet: ap
-  url: https://feeds.apnews.com/rss/politics
-- outlet: reuters
-  url: https://www.reuters.com/arc/outboundfeeds/rss/category/world/
-- outlet: reuters
-  url: https://www.reuters.com/arc/outboundfeeds/rss/category/business/
+- outlet: bbc
+  url: https://feeds.bbci.co.uk/news/rss.xml
+- outlet: bbc
+  url: https://feeds.bbci.co.uk/news/world/rss.xml
+- outlet: npr
+  url: https://feeds.npr.org/1001/rss.xml
+- outlet: npr
+  url: https://feeds.npr.org/1004/rss.xml
 ```
 
 (Exact feed URLs to be confirmed during Phase 1 step 2; the structure is stable.)
@@ -258,7 +258,7 @@ Read-only. There are no user-write actions in v1.
 
 ### Query params (all three endpoints)
 - `min_severity` — int, default 0
-- `outlet` — `guardian` \| `ap` \| `reuters`, default all
+- `outlet` — `guardian` \| `bbc` \| `npr`, default all
 - `since` — ISO timestamp, default 7 days ago
 
 ### Pagination
@@ -287,11 +287,11 @@ Two-pane shell. `App.jsx` owns the selected-article state.
 │    "Fed signals..."      │   ○  Now                        │
 │    2 changes             │   │                             │
 │                          │   ●  2h ago — headline_change · 4│
-│  ● AP                    │   │       "rate cut" → "rate hold"│
+│  ● BBC                   │   │       "rate cut" → "rate hold"│
 │    "Senate vote..."      │   │                             │
 │    1 change              │   •  4h ago — quote_change · 2  │
 │                          │   │                             │
-│  ● Reuters               │   ●  6h ago — fact_change · 5   │
+│  ● NPR                   │   ●  6h ago — fact_change · 5   │
 │    "Climate report..."   │   │                             │
 │    5 changes             │   ○  9h ago — first published   │
 └──────────────────────────┴─────────────────────────────────┘
@@ -332,7 +332,7 @@ Same color/size system. The row's dot uses the color of the article's most recen
 
 ### Filter bar
 - **Min-severity slider**, 0–5. Default min = 2 (hides cosmetic noise).
-- **Outlet multi-select** — Guardian / AP / Reuters.
+- **Outlet multi-select** — Guardian / BBC / NPR.
 - **Time window** — 24h / 7d / all.
 
 ### Polling
@@ -354,7 +354,7 @@ Same color/size system. The row's dot uses the color of the article's most recen
 4. Differ + pre-filter rules. Unit tests for the four pre-filter conditions.
 5. Classifier: Anthropic SDK, JSON mode, cached system prompt. Schema validation, retry-once on failure, fallback `change_type='other'` row.
 6. APScheduler 5-min job. Run locally for ~1 hour against Guardian only to confirm full discover → scrape → diff → classify → store loop works.
-7. Add AP and Reuters. Re-verify trafilatura on each.
+7. Add BBC and NPR. Re-verify trafilatura on each.
 
 ### Phase 2 — API
 8. FastAPI endpoints with query params.
@@ -399,7 +399,8 @@ Same color/size system. The row's dot uses the color of the article's most recen
 
 ## Risks & Open Concerns
 
-- **trafilatura quality on AP and Reuters** is unverified. If extraction is dirty (boilerplate, navigation crud), we'll either need site-specific selectors or a fallback extractor. Phase 1 step 7 is the gate.
+- **trafilatura quality on BBC and NPR** is unverified. If extraction is dirty (boilerplate, navigation crud), we'll either need site-specific selectors or a fallback extractor. Phase 1 step 7 is the gate.
+- **AP and Reuters were excluded after a live verification spike** revealed that AP no longer publishes public RSS at the URL we tried (DNS does not resolve), and Reuters dropped public RSS entirely. BBC and NPR are confirmed working alternatives with full body extraction and reliable RSS endpoints.
 - **RSS feed coverage.** Outlets sometimes only publish a subset of articles to RSS. We'll see what we see; v1 doesn't try to be comprehensive.
 - **Single-instance scheduler** is fine for v1 but is a known scaling cliff (see Architecture Overview).
 - **No retroactive archive.** We only see edits to articles published *after* deployment. Historical articles are invisible to us. This is intentional for MVP.

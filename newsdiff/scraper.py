@@ -35,8 +35,9 @@ def parse_article(html: str) -> Optional[ParsedArticle]:
 def fetch_url(url: str, *, timeout: float = 15.0) -> Optional[str]:
     headers = {
         "User-Agent": (
-            "NewsDiffBot/1.0 "
-            "(+https://github.com/yourname/newsdiff; contact: you@example.com)"
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/123.0.0.0 Safari/537.36"
         )
     }
     try:

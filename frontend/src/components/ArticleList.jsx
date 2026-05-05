@@ -18,7 +18,7 @@ export default function ArticleList({ articles, selectedId, onSelect, loading, e
   if (!articles || articles.length === 0) {
     return (
       <div className="p-4 text-muted">
-        Watching feeds. New articles will appear here as they publish.
+        No articles match your filters yet. New ones appear here as they publish.
       </div>
     );
   }

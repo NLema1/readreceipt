@@ -57,7 +57,19 @@ export default function Timeline({ article, loading, error }) {
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b border-line">
         <h2 className="text-lg font-medium text-text">{article.headline || article.url}</h2>
-        <div className="text-xs text-muted mt-1">{article.outlet}</div>
+        <div className="text-xs text-muted mt-1 flex items-center gap-2">
+          <span>{article.outlet}</span>
+          <span>·</span>
+          <span>tracked since {new Date(article.first_seen).toLocaleString()}</span>
+          <a
+            href={article.url}
+            target="_blank"
+            rel="noreferrer"
+            className="ml-auto text-accent hover:underline"
+          >
+            open ↗
+          </a>
+        </div>
       </div>
       <Legend />
       <div className="flex-1 overflow-auto relative">

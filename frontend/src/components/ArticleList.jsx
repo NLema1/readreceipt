@@ -1,12 +1,4 @@
-import Dot from "./Dot";
 import OutletLogo from "./OutletLogo";
-
-function pickChangeTypeForRow(article) {
-  if (article.max_severity > 0 && article.change_count > 0) {
-    return "fact_change";
-  }
-  return "other";
-}
 
 export default function ArticleList({ articles, selectedId, onSelect, loading, error }) {
   if (loading && !articles) {
@@ -36,24 +28,15 @@ export default function ArticleList({ articles, selectedId, onSelect, loading, e
               (isSelected ? "bg-panel" : "")
             }
           >
-            <div className="flex items-start gap-3">
-              <Dot
-                changeType={pickChangeTypeForRow(a)}
-                severity={a.max_severity}
-                hollow={a.change_count === 0}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 text-xs text-muted">
-                  <OutletLogo outlet={a.outlet} />
-                  <span>
-                    {a.change_count} change{a.change_count === 1 ? "" : "s"}
-                    {a.max_severity > 0 && <> · sev {a.max_severity}</>}
-                  </span>
-                </div>
-                <div className="text-sm text-text mt-1 leading-snug">
-                  {a.headline || a.url}
-                </div>
-              </div>
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <OutletLogo outlet={a.outlet} />
+              <span>
+                {a.change_count} change{a.change_count === 1 ? "" : "s"}
+                {a.max_severity > 0 && <> · sev {a.max_severity}</>}
+              </span>
+            </div>
+            <div className="text-sm text-text mt-1 leading-snug">
+              {a.headline || a.url}
             </div>
           </li>
         );

@@ -100,3 +100,77 @@ def session_scope(engine):
         raise
     finally:
         session.close()
+
+
+from datetime import timedelta
+from typing import NamedTuple, Optional
+
+from sqlalchemy import func, select
+
+
+class ArticleStats(NamedTuple):
+    article: Article
+    change_count: int
+    max_severity: int
+
+
+def get_article_by_url(session: Session, url: str) -> Optional[Article]:
+    return session.execute(select(Article).where(Article.url == url)).scalar_one_or_none()
+
+
+def upsert_article(
+    session: Session, *, url: str, outlet: str, now: datetime
+) -> Article:
+    existing = get_article_by_url(session, url)
+    if existing:
+        return existing
+    article = Article(
+        url=url,
+        outlet=outlet,
+        first_seen=now,
+        last_checked=now,
+        tracking_until=now + timedelta(days=7),
+        current_headline="",
+    )
+    session.add(article)
+    session.flush()
+    return article
+
+
+def get_latest_version(session: Session, article_id: int) -> Optional[Version]:
+    return session.execute(
+        select(Version)
+        .where(Version.article_id == article_id)
+        .order_by(Version.scraped_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
+def list_articles_with_change_stats(
+    session: Session,
+    *,
+    min_severity: int = 0,
+    outlet: Optional[str] = None,
+    since: Optional[datetime] = None,
+) -> list[ArticleStats]:
+    stmt = (
+        select(
+            Article,
+            func.count(Change.id).label("change_count"),
+            func.coalesce(func.max(Change.severity), 0).label("max_severity"),
+        )
+        .outerjoin(Change, Change.article_id == Article.id)
+        .group_by(Article.id)
+    )
+    if min_severity > 0:
+        stmt = stmt.having(func.coalesce(func.max(Change.severity), 0) >= min_severity)
+    if outlet:
+        stmt = stmt.where(Article.outlet == outlet)
+    if since:
+        stmt = stmt.where(Article.first_seen >= since)
+    stmt = stmt.order_by(func.max(Change.classified_at).desc().nullslast())
+    rows = session.execute(stmt).all()
+    return [
+        ArticleStats(article=row[0], change_count=row[1], max_severity=row[2])
+        for row in rows
+    ]

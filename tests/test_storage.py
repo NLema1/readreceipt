@@ -305,3 +305,37 @@ def test_articles_past_tracking_window_excluded(engine):
     with session_scope(engine) as s:
         due = articles_due_for_rescrape(s, now=now)
         assert not any(a.url.endswith("/expired") for a in due)
+
+
+def test_list_articles_q_filter_matches_substring_case_insensitive(engine):
+    now = datetime.now(timezone.utc)
+    with session_scope(engine) as s:
+        a1 = upsert_article(s, url="https://example.com/p1", outlet="bbc", now=now)
+        a1.current_headline = "Fed signals rate cut"
+        a2 = upsert_article(s, url="https://example.com/p2", outlet="bbc", now=now)
+        a2.current_headline = "Climate report released"
+        s.flush()
+    with session_scope(engine) as s:
+        rows = list_articles_with_change_stats(s, q="fed")
+        urls = [r.article.url for r in rows]
+        assert urls == ["https://example.com/p1"]
+
+
+def test_list_articles_url_filter_exact_match(engine):
+    now = datetime.now(timezone.utc)
+    with session_scope(engine) as s:
+        upsert_article(s, url="https://example.com/exact", outlet="bbc", now=now)
+        upsert_article(s, url="https://example.com/other", outlet="bbc", now=now)
+    with session_scope(engine) as s:
+        rows = list_articles_with_change_stats(s, url="https://example.com/exact")
+        urls = [r.article.url for r in rows]
+        assert urls == ["https://example.com/exact"]
+
+
+def test_list_articles_url_filter_no_match_returns_empty(engine):
+    now = datetime.now(timezone.utc)
+    with session_scope(engine) as s:
+        upsert_article(s, url="https://example.com/a", outlet="bbc", now=now)
+    with session_scope(engine) as s:
+        rows = list_articles_with_change_stats(s, url="https://example.com/missing")
+        assert rows == []

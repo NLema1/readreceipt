@@ -161,6 +161,8 @@ def list_articles_with_change_stats(
     min_severity: int = 0,
     outlet: Optional[str] = None,
     since: Optional[datetime] = None,
+    q: Optional[str] = None,
+    url: Optional[str] = None,
 ) -> list[ArticleStats]:
     stmt = (
         select(
@@ -177,6 +179,11 @@ def list_articles_with_change_stats(
         stmt = stmt.where(Article.outlet == outlet)
     if since:
         stmt = stmt.where(Article.first_seen >= since)
+    if q:
+        like = f"%{q.lower()}%"
+        stmt = stmt.where(func.lower(Article.current_headline).like(like))
+    if url:
+        stmt = stmt.where(Article.url == url)
     stmt = stmt.order_by(func.max(Change.classified_at).desc().nullslast())
     rows = session.execute(stmt).all()
     return [

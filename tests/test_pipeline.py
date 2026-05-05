@@ -3,16 +3,16 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from newsdiff.classifier import Classification
-from newsdiff.scraper import ParsedArticle
-from newsdiff.storage import (
+from readreceipt.classifier import Classification
+from readreceipt.scraper import ParsedArticle
+from readreceipt.storage import (
     Change,
     Version,
     create_engine_and_tables,
     session_scope,
     upsert_article,
 )
-from newsdiff.pipeline import ScrapeOutcome, scrape_one_article
+from readreceipt.pipeline import ScrapeOutcome, scrape_one_article
 
 
 @pytest.fixture
@@ -119,7 +119,7 @@ def test_real_change_calls_classifier_and_writes_change(engine, article_id):
 
 
 def test_classifier_failure_writes_other_severity_zero(engine, article_id):
-    from newsdiff.classifier import ClassifierError
+    from readreceipt.classifier import ClassifierError
     fetch = MagicMock(return_value="<html/>")
     parse = MagicMock(side_effect=[
         ParsedArticle(headline="Old", body_text="The Fed signaled a rate cut Wednesday."),
@@ -153,7 +153,7 @@ def test_fetch_failure_returns_failed(engine, article_id):
 
 
 def test_classifier_recovers_after_one_retry(engine, article_id):
-    from newsdiff.classifier import ClassifierError
+    from readreceipt.classifier import ClassifierError
     fetch = MagicMock(return_value="<html/>")
     parse = MagicMock(side_effect=[
         ParsedArticle(headline="Old", body_text="The Fed signaled a rate cut Wednesday."),

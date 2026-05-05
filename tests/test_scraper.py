@@ -1,4 +1,4 @@
-from newsdiff.scraper import extract_headline, parse_article
+from readreceipt.scraper import extract_headline, parse_article
 
 
 SAMPLE_HTML = """
@@ -48,7 +48,7 @@ def test_parse_article_returns_none_when_body_empty():
 import httpx
 import pytest
 
-from newsdiff.scraper import fetch_url
+from readreceipt.scraper import fetch_url
 
 
 def test_fetch_url_returns_text_on_200(monkeypatch):

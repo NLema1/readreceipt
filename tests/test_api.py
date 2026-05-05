@@ -3,8 +3,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-from newsdiff.api import build_app
-from newsdiff.storage import (
+from readreceipt.api import build_app
+from readreceipt.storage import (
     Change,
     Version,
     create_engine_and_tables,

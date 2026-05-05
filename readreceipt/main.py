@@ -5,14 +5,14 @@ from anthropic import Anthropic
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from newsdiff import config
-from newsdiff.api import build_app
-from newsdiff.classifier import classify_change
-from newsdiff.discovery import load_feeds
-from newsdiff.pipeline import scrape_one_article
-from newsdiff.scheduler import start_scheduler
-from newsdiff.scraper import fetch_url, parse_article
-from newsdiff.storage import create_engine_and_tables
+from readreceipt import config
+from readreceipt.api import build_app
+from readreceipt.classifier import classify_change
+from readreceipt.discovery import load_feeds
+from readreceipt.pipeline import scrape_one_article
+from readreceipt.scheduler import start_scheduler
+from readreceipt.scraper import fetch_url, parse_article
+from readreceipt.storage import create_engine_and_tables
 
 
 logging.basicConfig(level=logging.INFO)
@@ -36,7 +36,7 @@ def _make_scrape_one():
 
     def _classifier(*, old_headline, old_body, new_headline, new_body):
         if client is None:
-            from newsdiff.classifier import ClassifierError
+            from readreceipt.classifier import ClassifierError
             raise ClassifierError("no API key configured")
         return classify_change(
             client=client,

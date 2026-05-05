@@ -78,7 +78,7 @@ export default function App() {
   return (
     <div className="h-full flex flex-col">
       <header className="px-4 py-3 border-b border-line flex items-center gap-4">
-        <div className="text-text font-mono text-lg">NewsDiff</div>
+        <div className="text-text font-mono text-lg">ReadReceipt</div>
         <SearchBar value={search} onChange={setSearch} isUrl={isUrl} />
       </header>
       <FilterBar filters={filters} onChange={setFilters} />

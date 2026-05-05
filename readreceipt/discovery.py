@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 import feedparser
 import yaml
 
-from newsdiff.storage import session_scope, upsert_article
-from newsdiff.url_utils import canonicalize_url
+from readreceipt.storage import session_scope, upsert_article
+from readreceipt.url_utils import canonicalize_url
 
 
 log = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ def discover_new_articles(engine, feeds: list[FeedSpec]) -> list[int]:
         for entry in entries:
             canonical = canonicalize_url(entry.url)
             with session_scope(engine) as s:
-                from newsdiff.storage import get_article_by_url
+                from readreceipt.storage import get_article_by_url
                 if get_article_by_url(s, canonical) is not None:
                     continue
                 article = upsert_article(

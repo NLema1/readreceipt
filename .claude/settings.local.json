@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Read(//private/tmp/**)",
+      "Bash(python3 -c \"from dotenv.main import find_dotenv; print\\(repr\\(find_dotenv\\(\\)\\)\\)\")",
+      "Bash(python -m pytest tests/test_pipeline.py -v)",
+      "Bash(pip install *)"
+    ]
+  }
+}

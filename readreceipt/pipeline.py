@@ -4,10 +4,10 @@ from typing import Callable, Optional
 
 import anthropic
 
-from newsdiff.classifier import Classification, ClassifierError
-from newsdiff.differ import compute_content_hash, compute_diff, should_skip_llm
-from newsdiff.scraper import ParsedArticle
-from newsdiff.storage import (
+from readreceipt.classifier import Classification, ClassifierError
+from readreceipt.differ import compute_content_hash, compute_diff, should_skip_llm
+from readreceipt.scraper import ParsedArticle
+from readreceipt.storage import (
     Article,
     Change,
     Version,

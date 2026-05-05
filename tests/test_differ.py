@@ -1,6 +1,6 @@
 import hashlib
 
-from newsdiff.differ import (
+from readreceipt.differ import (
     Diff,
     compute_content_hash,
     compute_diff,

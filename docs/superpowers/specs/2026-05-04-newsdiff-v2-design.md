@@ -1,4 +1,4 @@
-# NewsDiff v2 — Design
+# ReadReceipt v1 — Design
 
 **Status:** Approved design, ready for implementation planning.
 **Date:** 2026-05-04
@@ -11,7 +11,7 @@ This is a real-product attempt: deployed publicly, intended for outside users, i
 
 ## Why
 
-NewsDiffs (2012) captured diffs but drowned users in noise. LLMs now make automated significance-ranking cheap and viable, so we can show only the edits that matter.
+ReadReceipts (2012) captured diffs but drowned users in noise. LLMs now make automated significance-ranking cheap and viable, so we can show only the edits that matter.
 
 ## MVP Scope
 
@@ -280,7 +280,7 @@ Two-pane shell. `App.jsx` owns the selected-article state.
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│  NewsDiff                                          [filter]│
+│  ReadReceipt                                       [filter]│
 ├──────────────────────────┬─────────────────────────────────┤
 │                          │   "Fed signals rate cut"        │
 │  ● Guardian              │                                 │
@@ -387,7 +387,7 @@ Same color/size system. The row's dot uses the color of the article's most recen
 | name | required | notes |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | yes | from console.anthropic.com |
-| `DATABASE_URL` | yes in prod | Railway provides automatically; locally defaults to SQLite at `./newsdiff.db` |
+| `DATABASE_URL` | yes in prod | Railway provides automatically; locally defaults to SQLite at `./readreceipt.db` |
 | `ENVIRONMENT` | optional | `dev` \| `prod`, controls log verbosity and a few ergonomic toggles |
 
 ## Success Criteria

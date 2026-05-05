@@ -1,4 +1,4 @@
-from newsdiff.url_utils import canonicalize_url
+from readreceipt.url_utils import canonicalize_url
 
 
 def test_strips_query_string():

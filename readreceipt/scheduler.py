@@ -4,8 +4,8 @@ from typing import Callable
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from newsdiff.discovery import FeedSpec, discover_new_articles
-from newsdiff.storage import articles_due_for_rescrape, session_scope
+from readreceipt.discovery import FeedSpec, discover_new_articles
+from readreceipt.storage import articles_due_for_rescrape, session_scope
 
 
 log = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ def start_scheduler(*, engine, feeds: list[FeedSpec], scrape_one: Callable[[int]
         lambda: run_tick(engine=engine, feeds=feeds, scrape_one=scrape_one),
         trigger="interval",
         minutes=5,
-        id="newsdiff_tick",
+        id="readreceipt_tick",
         max_instances=1,
         coalesce=True,
     )

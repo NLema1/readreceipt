@@ -1,11 +1,11 @@
-from newsdiff import config
+from readreceipt import config
 
 
 def test_database_url_defaults_to_sqlite(monkeypatch):
     monkeypatch.setattr(config, "load_dotenv", lambda *a, **kw: False)
     monkeypatch.delenv("DATABASE_URL", raising=False)
     cfg = config.load()
-    assert cfg.database_url == "sqlite:///./newsdiff.db"
+    assert cfg.database_url == "sqlite:///./readreceipt.db"
 
 
 def test_database_url_from_env(monkeypatch):

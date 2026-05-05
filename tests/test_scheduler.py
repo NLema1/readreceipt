@@ -3,9 +3,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from newsdiff.discovery import FeedSpec
-from newsdiff.scheduler import run_tick
-from newsdiff.storage import (
+from readreceipt.discovery import FeedSpec
+from readreceipt.scheduler import run_tick
+from readreceipt.storage import (
     Article,
     create_engine_and_tables,
     session_scope,
@@ -28,7 +28,7 @@ def test_tick_runs_discovery_then_rescrapes(engine):
         a = upsert_article(s, url="https://example.com/a", outlet="guardian", now=now)
         a.last_checked = now - timedelta(hours=1)
         s.flush()
-    with patch("newsdiff.scheduler.discover_new_articles", discover):
+    with patch("readreceipt.scheduler.discover_new_articles", discover):
         run_tick(engine=engine, feeds=feeds, scrape_one=scrape_one)
 
     discover.assert_called_once_with(engine, feeds)

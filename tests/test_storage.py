@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from newsdiff.storage import (
+from readreceipt.storage import (
     Article,
     Change,
     Version,
@@ -101,7 +101,7 @@ def test_url_unique_constraint(engine):
             )
 
 
-from newsdiff.storage import (
+from readreceipt.storage import (
     get_article_by_url,
     get_latest_version,
     upsert_article,
@@ -255,7 +255,7 @@ def test_list_articles_ordered_by_most_recent_change_with_nullslast(engine):
         assert urls[2] == "https://example.com/none"
 
 
-from newsdiff.storage import articles_due_for_rescrape
+from readreceipt.storage import articles_due_for_rescrape
 
 
 def test_articles_due_recent_uses_30min_threshold(engine):

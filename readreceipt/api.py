@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Query
 from sqlalchemy import select
 
-from newsdiff.storage import (
+from readreceipt.storage import (
     Article,
     Change,
     Version,
@@ -52,7 +52,7 @@ def _resolve_since(since: Optional[str]) -> Optional[datetime]:
 
 
 def build_app(*, engine) -> FastAPI:
-    app = FastAPI(title="NewsDiff")
+    app = FastAPI(title="ReadReceipt")
 
     @app.get("/api/articles")
     def list_articles(
@@ -62,7 +62,7 @@ def build_app(*, engine) -> FastAPI:
         q: Optional[str] = None,
         url: Optional[str] = None,
     ):
-        from newsdiff.url_utils import canonicalize_url
+        from readreceipt.url_utils import canonicalize_url
         since_dt = _resolve_since(since)
         canonical_url = canonicalize_url(url) if url else None
         with session_scope(engine) as s:

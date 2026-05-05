@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from newsdiff.cli import main
+from readreceipt.cli import main
 
 
 def test_dry_run_does_not_create_db(tmp_path, capsys, monkeypatch):
@@ -12,7 +12,7 @@ def test_dry_run_does_not_create_db(tmp_path, capsys, monkeypatch):
     import yaml
     feeds_path.write_text(yaml.safe_dump(fake_feeds))
 
-    with patch("newsdiff.cli._fetch_feed_for_dry_run", return_value=["https://example.com/a"]):
+    with patch("readreceipt.cli._fetch_feed_for_dry_run", return_value=["https://example.com/a"]):
         main(["--dry-run", "--feeds", str(feeds_path)])
 
     out = capsys.readouterr().out

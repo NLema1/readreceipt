@@ -5,8 +5,8 @@ from typing import Optional
 
 import feedparser
 
-from newsdiff import config
-from newsdiff.discovery import FeedSpec, load_feeds
+from readreceipt import config
+from readreceipt.discovery import FeedSpec, load_feeds
 
 
 def _fetch_feed_for_dry_run(url: str) -> list[str]:
@@ -28,7 +28,7 @@ def _do_dry_run(feeds: list[FeedSpec]) -> None:
 
 
 def main(argv: Optional[list[str]] = None) -> None:
-    parser = argparse.ArgumentParser(prog="newsdiff")
+    parser = argparse.ArgumentParser(prog="readreceipt")
     parser.add_argument("--dry-run", action="store_true", help="discover only, no DB or LLM")
     parser.add_argument("--feeds", default="feeds.yaml")
     parser.add_argument("--verbose", action="store_true")
@@ -46,7 +46,7 @@ def main(argv: Optional[list[str]] = None) -> None:
     print(f"Database URL: {cfg.database_url}")
     print(f"Environment:  {cfg.environment}")
     print(f"Loaded {len(feeds)} feeds.")
-    print("Use the FastAPI server (uvicorn newsdiff.main:app) to run the full pipeline.")
+    print("Use the FastAPI server (uvicorn readreceipt.main:app) to run the full pipeline.")
 
 
 if __name__ == "__main__":

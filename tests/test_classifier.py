@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from newsdiff.classifier import (
+from readreceipt.classifier import (
     Classification,
     ClassifierError,
     classify_change,

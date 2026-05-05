@@ -1,4 +1,4 @@
-# NewsDiff
+# ReadReceipt
 
 Track meaningful edits to news articles from Guardian, BBC, and NPR.
 
@@ -18,7 +18,7 @@ pip install -r requirements.txt
 cp .env.example .env
 # edit .env to set ANTHROPIC_API_KEY
 
-uvicorn newsdiff.main:app --reload --port 8000
+uvicorn readreceipt.main:app --reload --port 8000
 ```
 
 ### Frontend
@@ -42,7 +42,7 @@ pytest
 ### Dry-run
 
 ```bash
-python -m newsdiff.cli --dry-run
+python -m readreceipt.cli --dry-run
 ```
 
 Discovers feeds without writing to the database or making LLM calls. Useful for sanity-checking new feeds.
@@ -53,7 +53,7 @@ Discovers feeds without writing to the database or making LLM calls. Useful for 
 2. Create a new Railway project from the GitHub repo.
 3. Add a Postgres plugin. Railway sets `DATABASE_URL` automatically.
 4. Set `ANTHROPIC_API_KEY` and `ENVIRONMENT=prod` in the Railway service variables.
-5. Deploy. Railway builds the Dockerfile and runs `uvicorn newsdiff.main:app`.
+5. Deploy. Railway builds the Dockerfile and runs `uvicorn readreceipt.main:app`.
 6. Open the deployed URL — the frontend is served at `/`, the API under `/api/`.
 
 ## Environment variables
@@ -61,7 +61,7 @@ Discovers feeds without writing to the database or making LLM calls. Useful for 
 | Var | Required | Default | Notes |
 |---|---|---|---|
 | `ANTHROPIC_API_KEY` | yes | — | from console.anthropic.com |
-| `DATABASE_URL` | prod only | `sqlite:///./newsdiff.db` | Railway provides this |
+| `DATABASE_URL` | prod only | `sqlite:///./readreceipt.db` | Railway provides this |
 | `ENVIRONMENT` | no | `dev` | `dev` or `prod` |
 
 ## Architecture

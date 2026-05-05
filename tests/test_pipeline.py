@@ -150,3 +150,28 @@ def test_fetch_failure_returns_failed(engine, article_id):
     assert outcome == ScrapeOutcome.FETCH_FAILED
     parse.assert_not_called()
     classifier.assert_not_called()
+
+
+def test_classifier_recovers_after_one_retry(engine, article_id):
+    from newsdiff.classifier import ClassifierError
+    fetch = MagicMock(return_value="<html/>")
+    parse = MagicMock(side_effect=[
+        ParsedArticle(headline="Old", body_text="The Fed signaled a rate cut Wednesday."),
+        ParsedArticle(headline="New", body_text="The Fed signaled a rate hold Wednesday, surprising markets."),
+    ])
+    classifier = MagicMock(side_effect=[
+        ClassifierError("transient"),
+        Classification(change_type="fact_change", severity=4, summary="rate flipped"),
+    ])
+
+    scrape_one_article(engine=engine, article_id=article_id,
+                      fetch=fetch, parse=parse, classifier=classifier)
+    outcome = scrape_one_article(engine=engine, article_id=article_id,
+                                fetch=fetch, parse=parse, classifier=classifier)
+
+    assert outcome == ScrapeOutcome.CLASSIFIED
+    assert classifier.call_count == 2
+    with session_scope(engine) as s:
+        changes = s.query(Change).filter_by(article_id=article_id).all()
+        assert len(changes) == 1
+        assert changes[0].change_type == "fact_change"

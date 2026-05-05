@@ -8,6 +8,8 @@ const OUTLET_META = {
   cbs:        { src: "/logos/cbs.svg",        title: "CBS News" },
   thehill:    { src: "/logos/thehill.svg",    title: "The Hill" },
   sky:        { src: "/logos/sky.svg",        title: "Sky News" },
+  fox:        { src: "/logos/fox.svg",        title: "Fox News" },
+  nypost:     { src: "/logos/nypost.svg",     title: "New York Post" },
 };
 
 const SIZE_CONFIG = {

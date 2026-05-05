@@ -22,3 +22,7 @@
   url: https://thehill.com/feed/
 - outlet: sky
   url: https://feeds.skynews.com/feeds/rss/world.xml
+- outlet: fox
+  url: https://moxie.foxnews.com/google-publisher/latest.xml
+- outlet: nypost
+  url: https://nypost.com/feed/

@@ -31,6 +31,7 @@ export default function App() {
     outlets: [
       "guardian", "bbc", "npr",
       "aljazeera", "propublica", "nbc", "cbs", "thehill", "sky",
+      "fox", "nypost",
     ],
     window: "7d",
   });

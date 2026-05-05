@@ -4,6 +4,7 @@ import { OUTLET_LABELS } from "../constants";
 const OUTLETS = [
   "guardian", "bbc", "npr",
   "aljazeera", "propublica", "nbc", "cbs", "thehill", "sky",
+  "fox", "nypost",
 ];
 
 export default function FilterBar({ filters, onChange }) {

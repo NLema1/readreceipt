@@ -37,4 +37,6 @@ export const OUTLET_LABELS = {
   cbs: "CBS News",
   thehill: "The Hill",
   sky: "Sky News",
+  fox: "Fox News",
+  nypost: "New York Post",
 };

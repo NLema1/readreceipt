@@ -18,17 +18,76 @@ CHANGE_TYPES = {
 }
 
 SYSTEM_PROMPT = """\
-You are classifying edits to news articles. Given two versions of the same \
-article (old and new), call the classify_change tool with a JSON object \
-describing the most significant change. Be conservative with severity — most \
-edits are minor cleanups.
+You classify edits between two versions of a news article. Most edits to \
+mature articles are copy edits — rephrasings, word substitutions, or sentence \
+cleanup that do not change what the article asserts. Default to a copy-edit \
+classification unless you can point to a specific fact, claim, attribution, \
+quote, or interpretive frame that shifted.
 
-Severity scale:
-  1 — cosmetic (formatting, link fix, image swap)
-  2 — minor wording, no meaning change
-  3 — meaningful rewording, added context, softening
-  4 — fact change, quote change, source removed, headline reframed
-  5 — substantive correction, retraction, major reversal
+THE MEANING-PRESERVATION TEST
+
+Before picking severity or change_type, identify the specific spans that \
+changed. Then, using the surrounding article text as context — what is the \
+article about, who is being described, what is being asserted — ask: would a \
+careful reader come away with a different conclusion about any verifiable \
+claim (number, name, date, location, attribution, sequence of events, direct \
+quote) or about the framing the article endorses?
+
+If no, the change preserves meaning. Set meaning_preserved=true, \
+change_type="other", severity 1 or 2.
+
+If yes, the change shifts meaning. Set meaning_preserved=false and pick the \
+most specific change_type and an appropriate severity.
+
+DO NOT pattern-match on apparent polarity flips ("contrary" vs. "does", \
+removal of "not", word swaps that look opposite) without parsing what those \
+words grammatically refer to in the article. Two phrasings with opposite \
+surface form often mean the same thing once you resolve what they modify.
+
+CHANGE TYPES (only used when meaning shifts):
+- headline_change — the headline now frames the story differently or asserts \
+a different fact
+- fact_change — a verifiable claim differs (number, name, date, location, \
+attribution, sequence)
+- quote_change — a direct quotation is altered, added, or removed
+- source_removed — an attributed source is removed or replaced
+- addition — substantive new information is introduced (paragraph, claim, \
+context)
+- deletion — substantive information is removed
+- other — a meaningful change that fits none of the above
+
+SEVERITY:
+1 — cosmetic only (whitespace, punctuation, link, image swap). Requires \
+meaning_preserved=true.
+2 — copy edit, no meaning change (rephrasing, word substitution, sentence \
+reorder, ambiguity reduction). Requires meaning_preserved=true.
+3 — meaning shift in a non-essential element (added context, softened tone, \
+reframed emphasis). Requires meaning_preserved=false.
+4 — meaning shift in a key fact, quote, or attribution. Requires \
+meaning_preserved=false.
+5 — substantive correction, retraction, or major reversal. Requires \
+meaning_preserved=false.
+
+CALIBRATION EXAMPLES
+
+Example A — copy edit:
+  Old: "despite considerable evidence to the contrary"
+  New: "despite considerable evidence that it does"
+  In an article about US non-acknowledgment of Israeli nuclear weapons, both \
+phrasings refer to evidence that Israel does have nukes. The grammatical \
+referent is the non-acknowledgment, not Israel's possession. Meaning is \
+preserved.
+  → meaning_preserved=true, change_type="other", severity=2,
+    summary="Rephrased an ambiguous clause more directly; meaning unchanged."
+
+Example B — fact change:
+  Old: "The president said the deal is final."
+  New: "The president said the deal is dead."
+  Same speaker, same sentence shell, but the asserted claim flipped from \
+agreement to collapse.
+  → meaning_preserved=false, change_type="quote_change", severity=4,
+    summary="Quoted statement reversed: deal characterized as dead instead \
+of final."
 """
 
 CLASSIFY_TOOL = {
@@ -36,20 +95,41 @@ CLASSIFY_TOOL = {
     "description": "Record the most significant difference between two versions of a news article.",
     "input_schema": {
         "type": "object",
-        "required": ["change_type", "severity", "summary"],
+        "required": ["meaning_preserved", "change_type", "severity", "summary"],
         "properties": {
+            "meaning_preserved": {
+                "type": "boolean",
+                "description": (
+                    "True if the change is a copy edit (rephrasing, word "
+                    "substitution, cleanup) that does not alter any "
+                    "verifiable claim, framing, or interpretation. False if "
+                    "a careful reader could draw a different conclusion "
+                    "about any fact, attribution, quote, or framing."
+                ),
+            },
             "change_type": {
                 "type": "string",
                 "enum": sorted(CHANGE_TYPES),
+                "description": (
+                    "Use 'other' when meaning_preserved is true. Otherwise "
+                    "pick the most specific category that fits."
+                ),
             },
             "severity": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 5,
+                "description": (
+                    "1-2 only when meaning is preserved. 3+ requires a "
+                    "specific identified meaning shift."
+                ),
             },
             "summary": {
                 "type": "string",
-                "description": "One sentence describing what changed and why it might matter.",
+                "description": (
+                    "One sentence describing what changed and why it might "
+                    "matter. If a copy edit, say so plainly."
+                ),
             },
         },
     },
@@ -82,6 +162,12 @@ def validate_classification(payload: dict[str, Any]) -> Classification:
     if not isinstance(summary, str) or not summary.strip():
         raise ClassifierError("summary must be a non-empty string")
 
+    meaning_preserved = payload.get("meaning_preserved")
+    if meaning_preserved is True and severity > 2:
+        severity = 2
+    if meaning_preserved is False and severity < 2:
+        severity = 2
+
     return Classification(
         change_type=change_type, severity=severity, summary=summary.strip()
     )
@@ -104,7 +190,8 @@ def _build_user_text(
         "NEW VERSION\n"
         f"Headline: {new_headline}\n\n"
         f"Body:\n{_truncate(new_body)}\n\n"
-        "Call the classify_change tool with the most significant change."
+        "Apply the meaning-preservation test using the full article above as "
+        "context, then call classify_change."
     )
 
 

@@ -6,7 +6,7 @@ import feedparser
 import yaml
 
 from readreceipt.storage import session_scope, upsert_article
-from readreceipt.url_utils import canonicalize_url
+from readreceipt.url_utils import canonicalize_url, is_live_blog_url
 
 
 log = logging.getLogger(__name__)
@@ -51,6 +51,9 @@ def discover_new_articles(engine, feeds: list[FeedSpec]) -> list[int]:
 
         for entry in entries:
             canonical = canonicalize_url(entry.url)
+            if is_live_blog_url(canonical):
+                log.info("skipping live-blog URL: %s", canonical)
+                continue
             with session_scope(engine) as s:
                 from readreceipt.storage import get_article_by_url
                 if get_article_by_url(s, canonical) is not None:

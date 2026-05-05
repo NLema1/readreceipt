@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
+from functools import lru_cache
 
 from sqlalchemy import (
     DateTime,
@@ -28,7 +29,7 @@ class Article(Base):
     __table_args__ = (UniqueConstraint("url", name="uq_articles_url"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    url: Mapped[str] = mapped_column(String(2048), nullable=False, index=True)
+    url: Mapped[str] = mapped_column(String(2048), nullable=False)
     outlet: Mapped[str] = mapped_column(String(32), nullable=False)
     first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_checked: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -78,13 +79,18 @@ def create_engine_and_tables(database_url: str):
     return engine
 
 
-def make_session_factory(engine):
+@lru_cache(maxsize=None)
+def _session_factory(engine):
     return sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
+
+
+def make_session_factory(engine):
+    return _session_factory(engine)
 
 
 @contextmanager
 def session_scope(engine):
-    factory = make_session_factory(engine)
+    factory = _session_factory(engine)
     session = factory()
     try:
         yield session

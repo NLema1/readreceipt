@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -12,6 +13,54 @@ class ParsedArticle:
     body_text: str
 
 
+_BOILERPLATE_CLASS_RE = re.compile(
+    r"(related|recommended|up-?next|playlist|sidebar|trending|"
+    r"more-?from|read-?more|you-?may-?also-?like|promo|newsletter|subscribe|"
+    r"social-?share|share-?bar|comments?-?section|tags?-?list)",
+    re.IGNORECASE,
+)
+
+_TRUNCATE_MARKERS = (
+    "UP NEXT",
+    "MORE FROM",
+    "RELATED",
+    "RELATED STORIES",
+    "RELATED ARTICLES",
+    "RELATED COVERAGE",
+    "MORE COVERAGE",
+    "YOU MAY ALSO LIKE",
+    "RECOMMENDED FOR YOU",
+    "SPONSORED CONTENT",
+)
+
+
+def strip_boilerplate(html: str) -> str:
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup.find_all(["aside", "nav", "footer"]):
+        tag.decompose()
+    for tag in soup.find_all(attrs={"role": ["complementary", "navigation"]}):
+        tag.decompose()
+    for tag in soup.find_all(class_=_BOILERPLATE_CLASS_RE):
+        tag.decompose()
+    for tag in soup.find_all(id=_BOILERPLATE_CLASS_RE):
+        tag.decompose()
+    return str(soup)
+
+
+def trim_after_markers(text: str) -> str:
+    lines = text.split("\n")
+    keep: list[str] = []
+    for line in lines:
+        stripped_upper = line.strip().upper()
+        if stripped_upper and any(
+            stripped_upper == m or stripped_upper.startswith(m + ":")
+            for m in _TRUNCATE_MARKERS
+        ):
+            break
+        keep.append(line)
+    return "\n".join(keep).rstrip()
+
+
 def extract_headline(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
     og = soup.find("meta", property="og:title")
@@ -23,12 +72,16 @@ def extract_headline(html: str) -> str:
 
 
 def parse_article(html: str) -> Optional[ParsedArticle]:
-    body = trafilatura.extract(html, include_comments=False, include_tables=False)
+    cleaned_html = strip_boilerplate(html)
+    body = trafilatura.extract(cleaned_html, include_comments=False, include_tables=False)
     if not body or not body.strip():
+        return None
+    body = trim_after_markers(body.strip())
+    if not body:
         return None
     return ParsedArticle(
         headline=extract_headline(html),
-        body_text=body.strip(),
+        body_text=body,
     )
 
 

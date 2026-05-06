@@ -106,6 +106,17 @@ _TRUNCATE_MARKERS = (
     "SPONSORED CONTENT",
 )
 
+# Lines matching these patterns are CMS-injected boilerplate (newsletter
+# promos, app banners) that trafilatura sometimes pulls into the body.
+_BOILERPLATE_LINE_PATTERNS = (
+    re.compile(r"stay\s+up\s+to\s+date\s+with\s+(our\s+)?up\s+first", re.IGNORECASE),
+    re.compile(r"sign\s+up\s+for\s+(our|the)\s+newsletter", re.IGNORECASE),
+    re.compile(r"subscribe\s+to\s+(our|the)\s+newsletter", re.IGNORECASE),
+    re.compile(r"newsletter\s+sent\s+every\s+(weekday|day|week)", re.IGNORECASE),
+    re.compile(r"download\s+the\s+(?:\w+\s+){1,3}app\b", re.IGNORECASE),
+    re.compile(r"follow\s+us\s+on\s+(facebook|twitter|instagram|tiktok)", re.IGNORECASE),
+)
+
 
 def strip_boilerplate(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
@@ -136,6 +147,34 @@ def trim_after_markers(text: str) -> str:
     return "\n".join(keep).rstrip()
 
 
+def _is_chrome_line(line: str) -> bool:
+    """True if this line looks like a related-story headline / link card / promo
+    that trafilatura captured as if it were body content. Conservative: keeps
+    legitimate single-word section labels (OPINION, ANALYSIS) and only flags
+    multi-word ALL-CAPS lines short enough to be link headlines.
+    """
+    s = line.strip()
+    if not s:
+        return False
+    # Exact boilerplate patterns (newsletter promos, app banners)
+    for pattern in _BOILERPLATE_LINE_PATTERNS:
+        if pattern.search(s):
+            return True
+    # ALL-CAPS short-multi-word line — almost always a related-story headline
+    words = s.split()
+    if 3 <= len(words) <= 15:
+        letters = [c for c in s if c.isalpha()]
+        if len(letters) >= 10:
+            upper_letters = [c for c in letters if c.isupper()]
+            if upper_letters and len(upper_letters) / len(letters) >= 0.85:
+                return True
+    return False
+
+
+def filter_chrome_lines(text: str) -> str:
+    return "\n".join(line for line in text.split("\n") if not _is_chrome_line(line))
+
+
 def extract_headline(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
     og = soup.find("meta", property="og:title")
@@ -152,6 +191,7 @@ def parse_article(html: str) -> Optional[ParsedArticle]:
     if not body or not body.strip():
         return None
     body = trim_after_markers(body.strip())
+    body = filter_chrome_lines(body).strip()
     if not body:
         return None
     marker = detect_interstitial(body)

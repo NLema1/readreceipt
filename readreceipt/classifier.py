@@ -217,6 +217,23 @@ something different (quote_change, often severity 4) versus paraphrasing \
 that preserves meaning (other, severity 2) versus a quotation being moved \
 to a different speaker (fact_change, severity 4-5).
 
+HEADLINE PRIORITY
+
+If the headline text has changed between the two versions, the change_type \
+is always headline_change, regardless of what else changed in the body. The \
+headline is what most readers see; even a single-word swap there outweighs \
+body edits. Body changes inform the severity (more substantive headline \
+shifts → higher severity), but they do not override the type.
+
+SMALL APPEND RULE
+
+A short factual append to an existing sentence or paragraph (under ~25 \
+words / 150 characters of net new content) is severity 2 addition. It does \
+not warrant severity 3+ unless it introduces a new source, removes existing \
+framing, or shifts the article's central claim. A single biographical fact \
+or specific achievement appended to a characterization is the canonical \
+example — it sharpens what was already said, it doesn't change it.
+
 Example K — multi-change diff on a developing story:
   Old: "federal police commissioner said the group would reach Australia. \
 He refused to had with the request."
@@ -243,6 +260,35 @@ canonical routine_update.
   → meaning_preserved=false, change_type="routine_update", severity=2,
     summary="Added current vote tally as count progressed; no prior claim \
 changed."
+
+Example M — headline tonal shift (body also changed):
+  Old headline: "Norwegian government rebuked over decision to reopen North \
+Sea gasfields"
+  New headline: "Norwegian government attacked over decision to reopen North \
+Sea gasfields"
+  Body diff: minor compound-word standardization ("gas fields" → "gasfields", \
+"oil field" → "oilfield") and one word insertion ("the disruption" → "the \
+current disruption").
+  The headline word swap "rebuked" → "attacked" intensifies the framing from \
+measured criticism to aggressive opposition. Body changes are minor copy \
+edits. Per the headline priority rule, change_type is headline_change, and \
+the tonal intensification justifies severity 3.
+  → meaning_preserved=false, change_type="headline_change", severity=3,
+    summary="Headline tone intensified from 'rebuked' to 'attacked'; minor \
+copy edits in body."
+
+Example N — small biographical fact appended:
+  Old: "Turner had been finding other things to do for years. He was \
+relentlessly competitive and an accomplished yachtsman."
+  New: "Turner had been finding other things to do for years. He was \
+relentlessly competitive and an accomplished yachtsman — he won the America's \
+Cup sailing competition in 1977."
+  A 12-word append that adds one specific achievement to an existing \
+characterization. The article's framing is unchanged; no new source or \
+perspective was introduced. Per the small-append rule, this is severity 2.
+  → meaning_preserved=false, change_type="addition", severity=2,
+    summary="Added specific achievement (America's Cup 1977); \
+characterization unchanged."
 """
 
 CLASSIFY_TOOL = {

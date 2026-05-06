@@ -1,4 +1,10 @@
-from readreceipt.scraper import detect_interstitial, extract_headline, parse_article
+from readreceipt.scraper import (
+    _is_chrome_line,
+    detect_interstitial,
+    extract_headline,
+    filter_chrome_lines,
+    parse_article,
+)
 
 
 SAMPLE_HTML = """
@@ -154,6 +160,68 @@ def test_detect_interstitial_skips_long_real_article_quoting_pattern():
 def test_detect_interstitial_clean_short_body_no_markers():
     body = "A short legitimate article about local news."
     assert detect_interstitial(body) is None
+
+
+def test_chrome_line_flags_all_caps_related_headline():
+    assert _is_chrome_line(
+        "BROOKLYN ATTACK LEAVES 3 INJURED, SUSPECT WEARING IRANIAN FLAG SHIRT ARRESTED BY NYPD"
+    )
+
+
+def test_chrome_line_flags_short_all_caps_link_card():
+    assert _is_chrome_line(
+        "FOX NEWS CHANNEL OUTDRAWS ABC, NBC IN WEEKDAY PRIMETIME DURING APRIL"
+    )
+
+
+def test_chrome_line_flags_npr_newsletter_promo():
+    assert _is_chrome_line(
+        "Stay up to date with our Up First newsletter sent every weekday morning."
+    )
+
+
+def test_chrome_line_flags_app_download_promo():
+    assert _is_chrome_line("Download the BBC News app to read more.")
+
+
+def test_chrome_line_keeps_single_word_section_label():
+    # Single-word ALL-CAPS labels are too common as legitimate section
+    # markers (OPINION, ANALYSIS, BREAKING) to strip.
+    assert not _is_chrome_line("OPINION")
+    assert not _is_chrome_line("ANALYSIS")
+
+
+def test_chrome_line_keeps_normal_prose():
+    assert not _is_chrome_line(
+        "DETROIT — Cade Cunningham scored 23 points and the Pistons "
+        "ended an NBA record-tying 12-game postseason losing streak."
+    )
+    assert not _is_chrome_line(
+        "The Federal Reserve signaled on Wednesday that it would cut rates."
+    )
+
+
+def test_chrome_line_keeps_quote_with_caps():
+    # All-caps within a longer mixed-case line is fine.
+    assert not _is_chrome_line(
+        "She told reporters: 'NOT TODAY, AND NOT TOMORROW EITHER. NEVER.'"
+    )
+
+
+def test_filter_chrome_lines_drops_only_chrome():
+    text = (
+        "The Federal Reserve signaled it would cut rates next month.\n"
+        "BROOKLYN ATTACK LEAVES 3 INJURED, SUSPECT ARRESTED BY NYPD\n"
+        "Markets responded positively to the news.\n"
+        "Stay up to date with our Up First newsletter sent every weekday morning.\n"
+        "More analysis is expected later this week."
+    )
+    out = filter_chrome_lines(text)
+    assert "Federal Reserve" in out
+    assert "Markets responded" in out
+    assert "More analysis" in out
+    assert "BROOKLYN ATTACK" not in out
+    assert "Up First newsletter" not in out
 
 
 def test_parse_article_rejects_cloudflare_page():

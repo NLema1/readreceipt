@@ -155,9 +155,12 @@ def test_fetch_failure_returns_failed(engine, article_id):
 def test_classifier_recovers_after_one_retry(engine, article_id):
     from readreceipt.classifier import ClassifierError
     fetch = MagicMock(return_value="<html/>")
+    # Headlines deliberately match across versions so the post-classification
+    # headline-priority rule doesn't override the change_type the classifier
+    # mock is returning. This test is exercising retry behavior.
     parse = MagicMock(side_effect=[
-        ParsedArticle(headline="Old", body_text="The Fed signaled a rate cut Wednesday."),
-        ParsedArticle(headline="New", body_text="The Fed signaled a rate hold Wednesday, surprising markets."),
+        ParsedArticle(headline="Fed signals rate move", body_text="The Fed signaled a rate cut Wednesday."),
+        ParsedArticle(headline="Fed signals rate move", body_text="The Fed signaled a rate hold Wednesday, surprising markets."),
     ])
     classifier = MagicMock(side_effect=[
         ClassifierError("transient"),

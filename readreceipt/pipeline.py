@@ -48,6 +48,53 @@ def _classify_with_retry(
     return None
 
 
+# Threshold (in characters) below which an "addition" change_type is treated
+# as a small fact append and capped at severity 2. ~25 words ≈ 150 chars at
+# typical English word lengths.
+_SMALL_ADDITION_CHAR_THRESHOLD = 150
+
+
+def _apply_post_classification_rules(
+    classification: Optional[Classification],
+    *,
+    old_headline: str,
+    new_headline: str,
+    old_body: str,
+    new_body: str,
+) -> Optional[Classification]:
+    """Server-side overrides applied after the LLM has classified a change.
+
+    Rules:
+    1. If the headline text differs (after whitespace normalization), force
+       change_type to 'headline_change' and ensure severity >= 2. Headline
+       changes are categorically more important than body-only changes and
+       should never be downgraded to 'other' / 'addition' / etc.
+    2. If change_type is 'addition' and the net body length grew by less than
+       _SMALL_ADDITION_CHAR_THRESHOLD characters, clamp severity to 2. Small
+       fact appends (a sentence completing a thought) shouldn't trigger the
+       VIBE SHIFT treatment that severity 3+ implies.
+    """
+    if classification is None:
+        return None
+
+    change_type = classification.change_type
+    severity = classification.severity
+    summary = classification.summary
+
+    if old_headline.strip() != new_headline.strip():
+        change_type = "headline_change"
+        severity = max(severity, 2)
+
+    if change_type == "addition":
+        net_added = max(0, len(new_body) - len(old_body))
+        if net_added < _SMALL_ADDITION_CHAR_THRESHOLD:
+            severity = min(severity, 2)
+
+    return Classification(
+        change_type=change_type, severity=severity, summary=summary
+    )
+
+
 def scrape_one_article(
     *,
     engine,
@@ -118,6 +165,13 @@ def scrape_one_article(
             classifier,
             old_headline=old_headline, old_body=old_body,
             new_headline=parsed.headline, new_body=parsed.body_text,
+        )
+        classification = _apply_post_classification_rules(
+            classification,
+            old_headline=old_headline,
+            new_headline=parsed.headline,
+            old_body=old_body,
+            new_body=parsed.body_text,
         )
 
     with session_scope(engine) as s:

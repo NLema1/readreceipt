@@ -67,6 +67,55 @@ def _do_purge_live_blogs(engine, *, dry_run: bool) -> None:
         )
 
 
+def _do_purge_polluted_history(engine, *, dry_run: bool) -> None:
+    from readreceipt.scraper import detect_interstitial
+
+    with session_scope(engine) as s:
+        all_versions = s.execute(select(Version)).scalars().all()
+        bad_article_ids: set[int] = set()
+        sample_markers: dict[int, str] = {}
+        for v in all_versions:
+            marker = detect_interstitial(v.body_text)
+            if marker:
+                bad_article_ids.add(v.article_id)
+                sample_markers.setdefault(v.article_id, marker)
+
+        if not bad_article_ids:
+            print("Found 0 articles with interstitial-pattern versions.")
+            return
+
+        ids = list(bad_article_ids)
+        articles = (
+            s.execute(select(Article).where(Article.id.in_(ids)))
+            .scalars()
+            .all()
+        )
+        print(
+            f"Found {len(articles)} article(s) with at least one polluted "
+            f"(interstitial) version:"
+        )
+        for a in articles:
+            print(
+                f"  - [{a.outlet}] matched={sample_markers.get(a.id)!r}  {a.url}"
+            )
+
+        if dry_run:
+            print("DRY RUN — no rows deleted.")
+            return
+
+        n_changes = s.execute(
+            delete(Change).where(Change.article_id.in_(ids))
+        ).rowcount
+        n_versions = s.execute(
+            delete(Version).where(Version.article_id.in_(ids))
+        ).rowcount
+        print(
+            f"Cleared history: {n_changes} change(s), "
+            f"{n_versions} version(s). Articles preserved; next tick will "
+            f"capture a fresh first version."
+        )
+
+
 def _do_reset_history_for_outlets(
     engine, *, outlets: list[str], dry_run: bool
 ) -> None:
@@ -115,6 +164,11 @@ def main(argv: Optional[list[str]] = None) -> None:
         default=None,
         help="for the given outlet slug, drop its versions and changes (articles preserved); repeatable",
     )
+    parser.add_argument(
+        "--purge-polluted-history",
+        action="store_true",
+        help="reset history for any article that has a Version matching a bot-protection / paywall interstitial pattern",
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
@@ -131,6 +185,12 @@ def main(argv: Optional[list[str]] = None) -> None:
         _do_reset_history_for_outlets(
             engine, outlets=args.reset_outlet_history, dry_run=args.dry_run
         )
+        return
+
+    if args.purge_polluted_history:
+        cfg = config.load()
+        engine = create_engine_and_tables(cfg.database_url)
+        _do_purge_polluted_history(engine, dry_run=args.dry_run)
         return
 
     feeds = load_feeds(args.feeds)

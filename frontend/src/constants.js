@@ -5,6 +5,8 @@ export const CHANGE_TYPE_COLORS = {
   source_removed: "#f97316",
   addition: "#14b8a6",
   deletion: "#ec4899",
+  temporal_update: "#06b6d4",
+  routine_update: "#84cc16",
   other: "#737373",
 };
 
@@ -15,6 +17,8 @@ export const CHANGE_TYPE_LABELS = {
   source_removed: "Source removed",
   addition: "Addition",
   deletion: "Deletion",
+  temporal_update: "Temporal update",
+  routine_update: "Routine update",
   other: "Other",
 };
 
@@ -34,6 +38,8 @@ export const ALL_CHANGE_TYPES = [
   "source_removed",
   "addition",
   "deletion",
+  "temporal_update",
+  "routine_update",
   "other",
 ];
 

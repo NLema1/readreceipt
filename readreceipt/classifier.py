@@ -14,6 +14,8 @@ CHANGE_TYPES = {
     "source_removed",
     "addition",
     "deletion",
+    "temporal_update",
+    "routine_update",
     "other",
 }
 
@@ -52,21 +54,46 @@ attribution, sequence)
 - quote_change — a direct quotation is altered, added, or removed
 - source_removed — an attributed source is removed or replaced
 - addition — substantive new information is introduced (paragraph, claim, \
-context)
+context that adds a new claim or shifts framing)
 - deletion — substantive information is removed
+- temporal_update — verb tense or time-reference changes that track real-world \
+progression on a developing story (e.g., "will arrive" → "arrived", \
+"is expected to" → "has", "earlier today" → "yesterday"). The underlying \
+event is the same; only the time-relative phrasing changed. Almost always \
+severity 1-2.
+- routine_update — new sentences or paragraphs added to a developing story \
+that report subsequent ordinary events without altering any prior claim \
+(e.g., a press conference now happened, a flight landed, a vote count was \
+released). Distinguished from "addition" by the absence of any new \
+interpretive frame, contested claim, or unattributed assertion. Almost \
+always severity 1-2.
 - other — a meaningful change that fits none of the above
 
 SEVERITY:
-1 — cosmetic only (whitespace, punctuation, link, image swap). Requires \
-meaning_preserved=true.
+1 — cosmetic only (whitespace, punctuation, link, image swap, abbreviation \
+expansion or contraction, typo fix). Requires meaning_preserved=true.
 2 — copy edit, no meaning change (rephrasing, word substitution, sentence \
-reorder, ambiguity reduction). Requires meaning_preserved=true.
+reorder, ambiguity reduction, temporal_update, routine_update). \
+meaning_preserved is usually true; for temporal_update / routine_update the \
+underlying event reality has progressed, but the article's claims have not \
+been contradicted, so meaning_preserved=false with severity 2 is also valid.
 3 — meaning shift in a non-essential element (added context, softened tone, \
 reframed emphasis). Requires meaning_preserved=false.
 4 — meaning shift in a key fact, quote, or attribution. Requires \
 meaning_preserved=false.
 5 — substantive correction, retraction, or major reversal. Requires \
 meaning_preserved=false.
+
+DO NOT AGGREGATE INDEPENDENT CHANGES
+
+When a single diff contains multiple separate changes, evaluate each \
+independently and return the severity of the highest single change, not the \
+sum. Three small changes do not stack into one large change unless they \
+collectively alter the article's meaning. If the changes are independent \
+(e.g., one typo fix in paragraph 1, one tense update in paragraph 4, one \
+abbreviation in paragraph 7), return the severity of the most significant \
+one, pick the change_type matching that one, and briefly mention the others \
+in the summary.
 
 CALIBRATION EXAMPLES
 
@@ -189,6 +216,33 @@ When a direct quotation changes, distinguish: the same speaker saying \
 something different (quote_change, often severity 4) versus paraphrasing \
 that preserves meaning (other, severity 2) versus a quotation being moved \
 to a different speaker (fact_change, severity 4-5).
+
+Example K — multi-change diff on a developing story:
+  Old: "federal police commissioner said the group would reach Australia. \
+He refused to had with the request."
+  New: "AFP commissioner said the group arrived in Australia. He refused \
+to help with the request."
+  Three independent changes: (a) abbreviation expansion "federal police \
+commissioner" → "AFP commissioner" (style, severity 1); (b) tense update \
+"would reach" → "arrived" because the group has now landed (temporal_update, \
+severity 2); (c) typo fix "refused to had" → "refused to help" (style, \
+severity 1). Each is independently low. None of them flip a verifiable \
+claim; the article's overall narrative is identical, just temporally \
+caught up.
+  → meaning_preserved=false, change_type="temporal_update", severity=2,
+    summary="Tense updated to reflect group's arrival; also abbreviation \
+swap and typo fix. No claim changed."
+
+Example L — developing-story routine update:
+  Old: "Ballots are still being counted in the contested district."
+  New: "Ballots are still being counted in the contested district. As of \
+6pm, the challenger leads by 1,200 votes with 78% of precincts reporting."
+  A new sentence reports an ordinary subsequent event (the count progressed). \
+No prior claim was contradicted; the original sentence remains. This is the \
+canonical routine_update.
+  → meaning_preserved=false, change_type="routine_update", severity=2,
+    summary="Added current vote tally as count progressed; no prior claim \
+changed."
 """
 
 CLASSIFY_TOOL = {

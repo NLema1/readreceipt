@@ -1,4 +1,5 @@
 import OutletLogo from "./OutletLogo";
+import ScoreBadge from "./ScoreBadge";
 
 export default function ArticleList({ articles, selectedId, onSelect, loading, error }) {
   if (loading && !articles) {
@@ -24,20 +25,23 @@ export default function ArticleList({ articles, selectedId, onSelect, loading, e
             key={a.id}
             onClick={() => onSelect(a.id)}
             className={
-              "px-4 py-4 cursor-pointer hover:bg-panel/60 " +
+              "flex items-center gap-3 px-4 py-4 cursor-pointer hover:bg-panel/60 " +
               (isSelected ? "bg-panel" : "")
             }
           >
-            <div className="flex items-center gap-2 text-xs text-muted">
-              <OutletLogo outlet={a.outlet} />
-              <span>
-                {a.change_count} change{a.change_count === 1 ? "" : "s"}
-                {a.max_severity > 0 && <> · sev {a.max_severity}</>}
-              </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 text-xs text-muted">
+                <OutletLogo outlet={a.outlet} />
+              </div>
+              <div className="text-sm text-text mt-2 leading-snug">
+                {a.headline || a.url}
+              </div>
             </div>
-            <div className="text-sm text-text mt-1 leading-snug">
-              {a.headline || a.url}
-            </div>
+            <ScoreBadge
+              severity={a.max_severity}
+              changeCount={a.change_count}
+              size="md"
+            />
           </li>
         );
       })}

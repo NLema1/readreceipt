@@ -1,3 +1,4 @@
+import logging
 import re
 from dataclasses import dataclass
 from typing import Optional
@@ -7,10 +8,65 @@ import trafilatura
 from bs4 import BeautifulSoup
 
 
+log = logging.getLogger(__name__)
+
+
 @dataclass(frozen=True)
 class ParsedArticle:
     headline: str
     body_text: str
+
+
+# Bot-protection / interstitial / paywall pages that masquerade as article HTML.
+# Detected only when body length is short (< INTERSTITIAL_MAX_BODY_CHARS), since
+# real articles can quote any of these phrases as part of legitimate prose.
+INTERSTITIAL_MAX_BODY_CHARS = 1500
+
+_INTERSTITIAL_PATTERNS = (
+    # Cloudflare bot protection
+    re.compile(r"client\s+challenge", re.IGNORECASE),
+    re.compile(r"checking\s+your\s+browser", re.IGNORECASE),
+    re.compile(r"DDoS\s+protection\s+by\s+Cloudflare", re.IGNORECASE),
+    re.compile(r"\bray\s+id\b\s*[:#]", re.IGNORECASE),
+    re.compile(r"cf-browser-verification", re.IGNORECASE),
+    re.compile(r"cf_chl_jschl_tk", re.IGNORECASE),
+    # Generic JS-required walls
+    re.compile(r"javascript\s+is\s+disabled", re.IGNORECASE),
+    re.compile(r"please\s+enable\s+javascript", re.IGNORECASE),
+    re.compile(r"javascript\s+is\s+required", re.IGNORECASE),
+    # CAPTCHA
+    re.compile(r"are\s+you\s+human\??", re.IGNORECASE),
+    re.compile(r"verify\s+you\s+are\s+(?:not\s+)?a\s+robot", re.IGNORECASE),
+    re.compile(r"please\s+complete\s+the\s+captcha", re.IGNORECASE),
+    # Access denied
+    re.compile(r"\baccess\s+denied\b", re.IGNORECASE),
+    re.compile(r"403\s+forbidden", re.IGNORECASE),
+    re.compile(r"your\s+access\s+has\s+been\s+blocked", re.IGNORECASE),
+    # Geographic blocks
+    re.compile(r"not\s+available\s+in\s+your\s+region", re.IGNORECASE),
+    re.compile(r"content\s+not\s+available\s+in\s+your\s+country", re.IGNORECASE),
+    # Subscription / paywall walls
+    re.compile(r"subscribe\s+to\s+continue", re.IGNORECASE),
+    re.compile(r"sign\s+in\s+to\s+(?:read|continue)", re.IGNORECASE),
+    re.compile(r"subscriber-?only\s+(article|content|story)", re.IGNORECASE),
+)
+
+
+def detect_interstitial(body: str) -> Optional[str]:
+    """If `body` looks like a bot-protection / paywall / error interstitial,
+    return the matched marker text. Otherwise return None.
+
+    Pattern matching is gated by body length: real articles can quote any of
+    these phrases mid-prose, but those articles are >> INTERSTITIAL_MAX_BODY_CHARS.
+    A short body containing one of these markers is virtually never an article.
+    """
+    if len(body) >= INTERSTITIAL_MAX_BODY_CHARS:
+        return None
+    for pattern in _INTERSTITIAL_PATTERNS:
+        m = pattern.search(body)
+        if m:
+            return m.group(0)
+    return None
 
 
 _BOILERPLATE_CLASS_RE = re.compile(
@@ -97,6 +153,14 @@ def parse_article(html: str) -> Optional[ParsedArticle]:
         return None
     body = trim_after_markers(body.strip())
     if not body:
+        return None
+    marker = detect_interstitial(body)
+    if marker:
+        log.warning(
+            "rejected interstitial scrape: matched=%r body_len=%d",
+            marker,
+            len(body),
+        )
         return None
     return ParsedArticle(
         headline=extract_headline(html),

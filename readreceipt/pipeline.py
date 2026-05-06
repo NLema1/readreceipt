@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Callable, Optional
@@ -14,6 +15,9 @@ from readreceipt.storage import (
     get_latest_version,
     session_scope,
 )
+
+
+log = logging.getLogger(__name__)
 
 
 class ScrapeOutcome(Enum):
@@ -62,6 +66,7 @@ def scrape_one_article(
 
     html = fetch(url)
     if not html:
+        log.info("fetch failed for article_id=%s url=%s", article_id, url)
         with session_scope(engine) as s:
             article = s.get(Article, article_id)
             article.last_checked = now
@@ -69,6 +74,12 @@ def scrape_one_article(
 
     parsed = parse(html)
     if parsed is None:
+        log.info(
+            "parse returned None (interstitial or empty body) "
+            "for article_id=%s url=%s",
+            article_id,
+            url,
+        )
         with session_scope(engine) as s:
             article = s.get(Article, article_id)
             article.last_checked = now

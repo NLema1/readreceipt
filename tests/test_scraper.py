@@ -1,4 +1,4 @@
-from readreceipt.scraper import extract_headline, parse_article
+from readreceipt.scraper import detect_interstitial, extract_headline, parse_article
 
 
 SAMPLE_HTML = """
@@ -103,6 +103,75 @@ def test_strip_boilerplate_keeps_legitimate_content():
     html = "<html><body><article><p>Keep me</p></article></body></html>"
     out = strip_boilerplate(html)
     assert "Keep me" in out
+
+
+def test_detect_interstitial_cloudflare_challenge():
+    body = (
+        "Client Challenge\n"
+        "JavaScript is disabled in your browser.\n"
+        "Please enable JavaScript to proceed.\n"
+        "Ray ID: 8a1b2c3d4e5f6789"
+    )
+    assert detect_interstitial(body) is not None
+
+
+def test_detect_interstitial_js_required_short_body():
+    body = "Please enable JavaScript to view this content."
+    assert detect_interstitial(body) is not None
+
+
+def test_detect_interstitial_captcha():
+    body = "Are you human? Verify you are not a robot to continue."
+    assert detect_interstitial(body) is not None
+
+
+def test_detect_interstitial_access_denied():
+    body = "Access Denied\n403 Forbidden\nYour access has been blocked."
+    assert detect_interstitial(body) is not None
+
+
+def test_detect_interstitial_geographic_block():
+    body = "This content is not available in your region."
+    assert detect_interstitial(body) is not None
+
+
+def test_detect_interstitial_subscription_wall():
+    body = "Subscribe to continue reading. This is a subscriber-only article."
+    assert detect_interstitial(body) is not None
+
+
+def test_detect_interstitial_skips_long_real_article_quoting_pattern():
+    # A real 5000-char article that happens to mention "JavaScript is disabled"
+    # in prose should NOT be flagged.
+    body = (
+        "The browser maker said in a statement that JavaScript is disabled "
+        "by default in private browsing mode for some users. "
+    ) * 50
+    assert len(body) > 1500
+    assert detect_interstitial(body) is None
+
+
+def test_detect_interstitial_clean_short_body_no_markers():
+    body = "A short legitimate article about local news."
+    assert detect_interstitial(body) is None
+
+
+def test_parse_article_rejects_cloudflare_page():
+    html = """
+    <html><head>
+    <meta property="og:title" content="Just a moment...">
+    <title>Just a moment...</title>
+    </head><body>
+    <article>
+    <h1>Client Challenge</h1>
+    <p>JavaScript is disabled in your browser.</p>
+    <p>Please enable JavaScript to proceed.</p>
+    <p>Ray ID: abc123</p>
+    </article>
+    </body></html>
+    """
+    parsed = parse_article(html)
+    assert parsed is None
 
 
 def test_trim_after_markers_only_trims_at_line_boundary():

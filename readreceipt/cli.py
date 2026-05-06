@@ -67,6 +67,28 @@ def _do_purge_live_blogs(engine, *, dry_run: bool) -> None:
         )
 
 
+def _do_purge_everything(engine, *, dry_run: bool) -> None:
+    with session_scope(engine) as s:
+        articles = s.execute(select(Article)).scalars().all()
+        versions = s.execute(select(Version)).scalars().all()
+        changes = s.execute(select(Change)).scalars().all()
+        print(
+            f"Will delete EVERYTHING: {len(articles)} article(s), "
+            f"{len(versions)} version(s), {len(changes)} change(s). "
+            f"Discovery will repopulate the article table on the next tick."
+        )
+        if dry_run:
+            print("DRY RUN — no rows deleted.")
+            return
+        n_changes = s.execute(delete(Change)).rowcount
+        n_versions = s.execute(delete(Version)).rowcount
+        n_articles = s.execute(delete(Article)).rowcount
+        print(
+            f"Deleted: {n_articles} article(s), {n_versions} version(s), "
+            f"{n_changes} change(s). Next 5-min tick will re-discover from RSS."
+        )
+
+
 def _do_reset_all_history(engine, *, dry_run: bool) -> None:
     with session_scope(engine) as s:
         n_articles = s.execute(select(Article)).scalars().all()
@@ -196,6 +218,11 @@ def main(argv: Optional[list[str]] = None) -> None:
         action="store_true",
         help="wipe ALL versions and changes across every article (article rows preserved)",
     )
+    parser.add_argument(
+        "--purge-everything",
+        action="store_true",
+        help="delete ALL articles, versions, and changes — discovery will repopulate from RSS on next tick",
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
@@ -224,6 +251,12 @@ def main(argv: Optional[list[str]] = None) -> None:
         cfg = config.load()
         engine = create_engine_and_tables(cfg.database_url)
         _do_reset_all_history(engine, dry_run=args.dry_run)
+        return
+
+    if args.purge_everything:
+        cfg = config.load()
+        engine = create_engine_and_tables(cfg.database_url)
+        _do_purge_everything(engine, dry_run=args.dry_run)
         return
 
     feeds = load_feeds(args.feeds)

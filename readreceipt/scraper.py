@@ -14,9 +14,26 @@ class ParsedArticle:
 
 
 _BOILERPLATE_CLASS_RE = re.compile(
-    r"(related|recommended|up-?next|playlist|sidebar|trending|"
+    r"(related|recommended|up-?next|playlist|trending|"
     r"more-?from|read-?more|you-?may-?also-?like|promo|newsletter|subscribe|"
-    r"social-?share|share-?bar|comments?-?section|tags?-?list)",
+    r"social-?share|share-?bar|social-icons|social-footer|"
+    r"comments?-?section|tags?-?list|"
+    r"^sidebar$|__sidebar\b|right-sidebar|left-sidebar|"
+    r"primary-sidebar|secondary-sidebar|"
+    r"menu-item|menu-toggle|menu-wrap|sub-menu|"
+    r"\bwidget\b|^widget(__|--|_)|gnswidget|zergnet|"
+    r"site-header|site-footer|"
+    r"header-nav|header-footer|nav-header|"
+    r"footer-nav|footer-legal|footer-more|"
+    r"single__(header|footer|sidebar)|"
+    r"content-header|article-header|article-footer|"
+    r"section-subnav|"
+    r"edition-selector|"
+    r"universal-promo|"
+    # BBC ssrcss-* CSS-in-JS semantic suffixes
+    r"LinkHeadline|LinkAnchor|LinkItem|"
+    r"MetadataStrip|Masthead|ProductNavigationContainer|"
+    r"VisuallyHidden|LogoLink|LogoWrapper)",
     re.IGNORECASE,
 )
 
@@ -36,9 +53,11 @@ _TRUNCATE_MARKERS = (
 
 def strip_boilerplate(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
-    for tag in soup.find_all(["aside", "nav", "footer"]):
+    for tag in soup.find_all(["aside", "nav", "header", "footer"]):
         tag.decompose()
-    for tag in soup.find_all(attrs={"role": ["complementary", "navigation"]}):
+    for tag in soup.find_all(
+        attrs={"role": ["complementary", "navigation", "banner", "search"]}
+    ):
         tag.decompose()
     for tag in soup.find_all(class_=_BOILERPLATE_CLASS_RE):
         tag.decompose()

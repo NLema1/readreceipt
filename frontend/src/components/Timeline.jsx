@@ -59,6 +59,9 @@ export default function Timeline({ article, loading, error, onClose }) {
   const hasChanges = article.changes.length > 0;
   const totalSeverity = article.changes.reduce((s, c) => s + (c.severity ?? 0), 0);
   const maxSeverity = article.changes.reduce((m, c) => Math.max(m, c.severity ?? 0), 0);
+  // "Tracked since" reflects when our actual data starts (earliest stored version),
+  // not when the URL was first discovered — the latter can predate a history reset.
+  const earliestVersionAt = article.versions[0]?.scraped_at ?? article.first_seen;
 
   return (
     <div className="h-full flex flex-col">
@@ -82,7 +85,7 @@ export default function Timeline({ article, loading, error, onClose }) {
         <div className="font-mono text-xs text-muted mt-3 flex flex-col gap-0.5">
           <div className="flex justify-between">
             <span>TRACKED SINCE</span>
-            <span className="text-text">{fmtDate(article.first_seen)}</span>
+            <span className="text-text">{fmtDate(earliestVersionAt)}</span>
           </div>
           <div className="flex justify-between">
             <span>VERSIONS LOGGED</span>

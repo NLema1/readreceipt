@@ -67,6 +67,28 @@ def _do_purge_live_blogs(engine, *, dry_run: bool) -> None:
         )
 
 
+def _do_reset_all_history(engine, *, dry_run: bool) -> None:
+    with session_scope(engine) as s:
+        n_articles = s.execute(select(Article)).scalars().all()
+        n_versions = s.execute(select(Version)).scalars().all()
+        n_changes = s.execute(select(Change)).scalars().all()
+        print(
+            f"Will reset history across all {len(n_articles)} article(s): "
+            f"drop {len(n_versions)} version(s) and {len(n_changes)} "
+            f"change(s). Article rows preserved."
+        )
+        if dry_run:
+            print("DRY RUN — no rows deleted.")
+            return
+        deleted_changes = s.execute(delete(Change)).rowcount
+        deleted_versions = s.execute(delete(Version)).rowcount
+        print(
+            f"Cleared history: {deleted_changes} change(s), "
+            f"{deleted_versions} version(s). Articles preserved; next tick "
+            f"will capture a fresh first version for every tracked article."
+        )
+
+
 def _do_purge_polluted_history(engine, *, dry_run: bool) -> None:
     from readreceipt.scraper import detect_interstitial
 
@@ -169,6 +191,11 @@ def main(argv: Optional[list[str]] = None) -> None:
         action="store_true",
         help="reset history for any article that has a Version matching a bot-protection / paywall interstitial pattern",
     )
+    parser.add_argument(
+        "--reset-all-history",
+        action="store_true",
+        help="wipe ALL versions and changes across every article (article rows preserved)",
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
@@ -191,6 +218,12 @@ def main(argv: Optional[list[str]] = None) -> None:
         cfg = config.load()
         engine = create_engine_and_tables(cfg.database_url)
         _do_purge_polluted_history(engine, dry_run=args.dry_run)
+        return
+
+    if args.reset_all_history:
+        cfg = config.load()
+        engine = create_engine_and_tables(cfg.database_url)
+        _do_reset_all_history(engine, dry_run=args.dry_run)
         return
 
     feeds = load_feeds(args.feeds)

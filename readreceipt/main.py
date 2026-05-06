@@ -56,12 +56,6 @@ def _make_scrape_one():
 @app.on_event("startup")
 def _on_startup():
     global _scheduler
-    try:
-        from readreceipt.cli import _do_reset_all_history
-        log.info("running one-time global history reset at startup (clean slate)")
-        _do_reset_all_history(engine, dry_run=False)
-    except Exception:
-        log.exception("startup history reset failed (continuing)")
     feeds = load_feeds("feeds.yaml")
     scrape_one = _make_scrape_one()
     _scheduler = start_scheduler(engine=engine, feeds=feeds, scrape_one=scrape_one)

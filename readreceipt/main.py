@@ -56,12 +56,6 @@ def _make_scrape_one():
 @app.on_event("startup")
 def _on_startup():
     global _scheduler
-    try:
-        from readreceipt.cli import _do_purge_everything
-        log.info("running one-time full purge at startup (articles + versions + changes)")
-        _do_purge_everything(engine, dry_run=False)
-    except Exception:
-        log.exception("startup full purge failed (continuing)")
     feeds = load_feeds("feeds.yaml")
     scrape_one = _make_scrape_one()
     _scheduler = start_scheduler(engine=engine, feeds=feeds, scrape_one=scrape_one)

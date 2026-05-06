@@ -67,6 +67,38 @@ def _do_purge_live_blogs(engine, *, dry_run: bool) -> None:
         )
 
 
+def _do_reset_history_for_outlets(
+    engine, *, outlets: list[str], dry_run: bool
+) -> None:
+    with session_scope(engine) as s:
+        targets = (
+            s.execute(select(Article).where(Article.outlet.in_(outlets)))
+            .scalars()
+            .all()
+        )
+        ids = [a.id for a in targets]
+        print(
+            f"Found {len(targets)} article(s) in outlet(s) {outlets}; "
+            f"will reset their version + change history."
+        )
+        if dry_run:
+            print("DRY RUN — no rows deleted.")
+            return
+        if not ids:
+            return
+        n_changes = s.execute(
+            delete(Change).where(Change.article_id.in_(ids))
+        ).rowcount
+        n_versions = s.execute(
+            delete(Version).where(Version.article_id.in_(ids))
+        ).rowcount
+        print(
+            f"Cleared history: {n_changes} change(s), "
+            f"{n_versions} version(s). Articles preserved; next tick will "
+            f"capture a fresh first version with the cleaned scraper."
+        )
+
+
 def main(argv: Optional[list[str]] = None) -> None:
     parser = argparse.ArgumentParser(prog="readreceipt")
     parser.add_argument("--dry-run", action="store_true", help="discover only, no DB or LLM (or preview --purge-live-blogs without deleting)")
@@ -77,6 +109,12 @@ def main(argv: Optional[list[str]] = None) -> None:
         action="store_true",
         help="delete tracked articles whose URL matches /live/, /live-updates/, or /live-blog/",
     )
+    parser.add_argument(
+        "--reset-outlet-history",
+        action="append",
+        default=None,
+        help="for the given outlet slug, drop its versions and changes (articles preserved); repeatable",
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
@@ -85,6 +123,14 @@ def main(argv: Optional[list[str]] = None) -> None:
         cfg = config.load()
         engine = create_engine_and_tables(cfg.database_url)
         _do_purge_live_blogs(engine, dry_run=args.dry_run)
+        return
+
+    if args.reset_outlet_history:
+        cfg = config.load()
+        engine = create_engine_and_tables(cfg.database_url)
+        _do_reset_history_for_outlets(
+            engine, outlets=args.reset_outlet_history, dry_run=args.dry_run
+        )
         return
 
     feeds = load_feeds(args.feeds)

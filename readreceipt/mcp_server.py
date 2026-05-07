@@ -1,4 +1,6 @@
+import os
 from fastmcp import FastMCP
+from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
 from datetime import datetime, timezone
 from readreceipt import config
 from readreceipt.storage import (
@@ -11,10 +13,12 @@ from readreceipt.storage import (
     create_engine_only,
     submit_evaluation
 )
+auth_token = os.environ["MCP_AUTH_TOKEN"]
+verifier = StaticTokenVerifier(
+    tokens= {auth_token: {"client_id": "eval-pipeline", "scopes": ["read", "write"]}},
+)
 
-
-
-mcp = FastMCP("readreceipt")
+mcp = FastMCP("readreceipt", auth=verifier)
 cfg = config.load()
 engine =  create_engine_only(cfg.database_url)
 
@@ -90,6 +94,5 @@ def get_change_detail(change_id: int) -> dict:
         }
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 8001))
     mcp.run(transport="streamable-http", host="0.0.0.0", port=port)

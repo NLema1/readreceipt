@@ -1,0 +1,4 @@
+fastmcp>=3.2.4
+sqlalchemy>=2.0
+psycopg2-binary  # or whatever Postgres driver your main app uses
+python-dotenv

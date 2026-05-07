@@ -1,0 +1,19 @@
+# ---- MCP server runtime ----
+FROM python:3.11-slim
+WORKDIR /app
+
+# System packages needed by SQLAlchemy/psycopg2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# MCP-specific dependencies (no FastAPI, no frontend, no node)
+COPY mcp-requirements.txt .
+RUN pip install --no-cache-dir -r mcp-requirements.txt
+
+# Just the readreceipt package — no frontend, no feeds.yaml
+COPY readreceipt/ ./readreceipt/
+
+ENV PYTHONUNBUFFERED=1
+EXPOSE 8001
+CMD ["python", "-m", "readreceipt.mcp_server"]

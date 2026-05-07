@@ -1,0 +1,7 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.mcp"
+
+[deploy]
+startCommand = "python -m readreceipt.mcp_server"
+restartPolicyType = "ON_FAILURE"

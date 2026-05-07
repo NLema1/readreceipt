@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 
 from sqlalchemy import (
@@ -10,6 +10,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     create_engine,
+    Boolean
 )
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -73,6 +74,21 @@ class Change(Base):
         DateTime(timezone=True), nullable=False, index=True
     )
 
+class Evaluation(Base):
+    __tablename__ = "evaluations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    change_id: Mapped[int] = mapped_column(
+        ForeignKey("changes.id"), nullable=False, index=True)                # which change is being evaluated
+    evaluator: Mapped[str]  = mapped_column(String(64), nullable=True)              # "gemini-2.5-pro", "gpt-4o", "human:name"
+    prompt_version: Mapped[str]  = mapped_column(String(32), nullable=False)
+    severity: Mapped[int] = mapped_column(Integer, nullable=False)
+    change_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    reasoning: Mapped[str] = mapped_column(Text, nullable=False)
+    agrees_with_haiku: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    evaluated_at:Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True)
+    
 
 def create_engine_and_tables(database_url: str):
     if database_url.startswith("sqlite") and ":memory:" in database_url:
@@ -85,6 +101,24 @@ def create_engine_and_tables(database_url: str):
     else:
         engine = create_engine(database_url, future=True)
     Base.metadata.create_all(engine)
+    return engine
+
+def create_engine_only(database_url: str):
+    """Connect to the database without creating or modifying tables.
+    
+    Use this for processes that read and write existing data but should
+    not manage schema (e.g., the MCP server). The main application is
+    responsible for schema creation via create_engine_and_tables.
+    """
+    if database_url.startswith("sqlite") and ":memory:" in database_url:
+        engine = create_engine(
+            database_url,
+            future=True,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    else:
+        engine = create_engine(database_url, future=True)
     return engine
 
 
@@ -127,9 +161,7 @@ def get_article_by_url(session: Session, url: str) -> Optional[Article]:
     return session.execute(select(Article).where(Article.url == url)).scalar_one_or_none()
 
 
-def upsert_article(
-    session: Session, *, url: str, outlet: str, now: datetime
-) -> Article:
+def upsert_article(session: Session, *, url: str, outlet: str, now: datetime) -> Article:
     existing = get_article_by_url(session, url)
     if existing:
         return existing
@@ -144,6 +176,25 @@ def upsert_article(
     session.add(article)
     session.flush()
     return article
+
+def submit_evaluation(session: Session, change_id: int, severity: int, change_type: str, reasoning: str, evaluator: str, prompt_version: str)-> Evaluation:
+    change = session.get(Change, change_id)
+    if change is None:
+        raise ValueError(f"Change {change_id} not found")
+    
+    evaluation = Evaluation(
+        change_id=change_id,
+        severity=severity,
+        change_type=change_type,
+        reasoning=reasoning,
+        evaluator=evaluator,
+        prompt_version=prompt_version,
+        agrees_with_haiku=(change.severity == severity and change.change_type == change_type),
+        evaluated_at=datetime.now(timezone.utc),
+    )
+    session.add(evaluation)
+    session.flush()
+    return evaluation
 
 
 def get_latest_version(session: Session, article_id: int) -> Optional[Version]:
@@ -209,3 +260,11 @@ def articles_due_for_rescrape(session: Session, *, now: datetime) -> list[Articl
         if (now - _aware(a.last_checked)).total_seconds() >= threshold:
             out.append(a)
     return out
+def get_change_with_versions(session: Session, change_id: int) -> Optional[tuple[Change, Version, Version, Article]]:
+    change = session.get(Change, change_id)
+    if change is None:
+        return None
+    from_v = session.get(Version, change.from_version_id)
+    to_v = session.get(Version, change.to_version_id)
+    article = session.get(Article, change.article_id)
+    return change, from_v, to_v, article

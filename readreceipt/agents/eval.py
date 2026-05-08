@@ -3,14 +3,14 @@ import asyncio
 from readreceipt import config
 from fastmcp import Client
 from google import genai
-from google.genai import types 
+from google.genai import types
 
 
 cfg = config.load()
 if not cfg.gemini_api_key or not cfg.mcp_auth_token or not cfg.mcp_server_url:
-    raise RuntimeError(                                                                  
-        "eval agent requires GEMINI_API_KEY, MCP_AUTH_TOKEN, MCP_SERVER_URL"             
-    )   
+    raise RuntimeError(
+        "eval agent requires GEMINI_API_KEY, MCP_AUTH_TOKEN, MCP_SERVER_URL"
+    )
 
 GEMINI_API_KEY= cfg.gemini_api_key
 MCP_AUTH_TOKEN= cfg.mcp_auth_token
@@ -84,10 +84,10 @@ async def run_batch():
     # for each, send to Gemini with MCP tools attached
     # log results
     async with mcp_client:
-        session = mcp_client.session 
+        session = mcp_client.session
         result = await mcp_client.call_tool("list_unevaluated_changes", {"evaluator": MODEL})
         change_ids = result.data  # or .structured_content, check docs
-        
+
         for change_id in change_ids:
             try:
                 prompt = EVAL_PROMPT.format(
@@ -101,9 +101,9 @@ async def run_batch():
                     model=MODEL,
                     contents=prompt,
                     config=types.GenerateContentConfig(
-                            tools=[session]))
-                print(f"[{change_id}] OK")  
-                await asyncio.sleep(1) 
+                            tools=[mcp_client]))
+                print(f"[{change_id}] OK")
+                await asyncio.sleep(1)
             except Exception as e:
                 print(f"Failed change {change_id}: {e}")
 

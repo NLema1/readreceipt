@@ -92,8 +92,8 @@ function TapeReceipt({ article, recentChanges, onSelect }) {
   const isVibe = sev >= 4;
   return (
     <div
-      className="paper"
-      style={{ padding: "18px 20px 20px", position: "relative", cursor: "pointer" }}
+      className="paper tape-card"
+      style={{ position: "relative", cursor: "pointer" }}
       onClick={() => onSelect?.(article.id)}
     >
       <Perf side="top" />
@@ -174,8 +174,8 @@ function SpotlightReceipt({ article, onSelect }) {
   return (
     <div style={{ position: "relative" }}>
       <div
-        className="paper tear-bottom"
-        style={{ padding: "26px 30px 28px", position: "relative", cursor: "pointer" }}
+        className="paper tear-bottom spotlight-paper"
+        style={{ position: "relative", cursor: "pointer" }}
         onClick={() => onSelect?.(article.id)}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -193,7 +193,7 @@ function SpotlightReceipt({ article, onSelect }) {
         <div className="mono" style={{ fontSize: 9, letterSpacing: "0.24em", color: "var(--ink-faded)", marginBottom: 6 }}>
           HEADLINE — REVISION {article.versions?.length || 1}
         </div>
-        <div className="serif" style={{ fontSize: 30, lineHeight: 1.05, marginBottom: 8, fontStyle: "italic" }}>
+        <div className="serif spotlight-h2" style={{ marginBottom: 8, fontStyle: "italic" }}>
           <span className="diff-add">{head}</span>
         </div>
         {orig && orig !== head && (
@@ -479,7 +479,7 @@ export default function Dashboard({
   }, []);
 
   return (
-    <div className="desk" style={{ minHeight: "100vh", padding: "36px 44px", position: "relative" }}>
+    <div className="desk dash-shell" style={{ minHeight: "100vh", position: "relative" }}>
       <div
         style={{
           display: "flex",
@@ -503,11 +503,10 @@ export default function Dashboard({
             DEPT. OF EDITORIAL VERIFICATION · CIRC. INTERNAL
           </div>
           <div
+            className="dash-title"
             style={{
               fontFamily: "var(--serif)",
               fontStyle: "italic",
-              fontSize: 64,
-              lineHeight: 1,
               color: "#f1e3bd",
               marginTop: 4,
               letterSpacing: "-0.01em",
@@ -572,13 +571,7 @@ export default function Dashboard({
         </div>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.2fr) minmax(280px, 320px)",
-          gap: 36,
-        }}
-      >
+      <div className="dash-grid">
         <div style={{ minWidth: 0 }}>
           <ColumnHeader kicker="TAPE №&nbsp;01" title="Today’s tape" sub="Most volatile, top of the pile" />
           <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
@@ -601,7 +594,11 @@ export default function Dashboard({
         </div>
 
         <div style={{ minWidth: 0 }}>
-          <ColumnHeader kicker="SPOTLIGHT" title="Most-revised story" sub="Highest volatility on the tape" />
+          <ColumnHeader
+            kicker="SPOTLIGHT"
+            title="Most-revised story"
+            sub={`Highest volatility · WINDOW ${filters.window.toUpperCase()} · ${recentChanges?.length || 0} changes in view`}
+          />
           {spotlight ? (
             <SpotlightReceipt article={spotlight} onSelect={onSelectArticle} />
           ) : (

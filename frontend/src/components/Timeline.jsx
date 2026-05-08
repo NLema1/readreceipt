@@ -47,12 +47,8 @@ function HeadlineDiff({ oldText, newText }) {
 function deskFrame(children) {
   return (
     <div
-      className="desk"
-      style={{
-        minHeight: "100vh",
-        padding: "44px 60px 60px",
-        position: "relative",
-      }}
+      className="desk detail-shell"
+      style={{ minHeight: "100vh", position: "relative" }}
     >
       {children}
     </div>
@@ -113,7 +109,7 @@ export default function Timeline({ article, loading, error, onClose }) {
     <>
       <TopBar onClose={onClose} />
       <div style={{ position: "relative", width: "min(720px, 100%)", margin: "0 auto" }}>
-        <div className="paper" style={{ padding: "30px 40px 40px", position: "relative" }}>
+        <div className="paper detail-paper" style={{ position: "relative" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
             <div>
               <div className="serial">RECEIPT №</div>
@@ -133,11 +129,9 @@ export default function Timeline({ article, loading, error, onClose }) {
             ARTICLE — CURRENT REVISION
           </div>
           <h1
-            className="serif"
+            className="serif detail-h1"
             style={{
               fontStyle: "italic",
-              fontSize: 40,
-              lineHeight: 1.04,
               margin: "8px 0 14px",
               letterSpacing: "-0.012em",
             }}
@@ -156,14 +150,7 @@ export default function Timeline({ article, loading, error, onClose }) {
             </div>
           )}
 
-          <div
-            style={{
-              marginTop: 18,
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "4px 24px",
-            }}
-          >
+          <div className="detail-meta-grid" style={{ marginTop: 18 }}>
             <LeaderRow label="Tracked since" value={trackedSinceLabel(article)} />
             <LeaderRow label="Versions logged" value={String(versionCount).padStart(2, "0")} />
             <LeaderRow label="Window" value={`${hoursTracked(article)} H`} />
@@ -196,7 +183,7 @@ export default function Timeline({ article, loading, error, onClose }) {
               >
                 HEADLINE DIFF · v{Math.max(1, versionCount - 1)} → v{versionCount}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
+              <div className="diff-grid" style={{ marginBottom: 18 }}>
                 <div style={{ borderTop: "1.2px solid var(--ink)", paddingTop: 8 }}>
                   <div
                     className="mono"

@@ -417,3 +417,57 @@ html, body, #root {
     0 1px 0 rgba(0,0,0,0.5),
     0 1px 6px rgba(0,0,0,0.4);
 }
+
+/* ====================================================================
+   responsive layout — desktop-first, then collapse
+   ==================================================================== */
+
+.dash-shell { padding: 36px 44px; }
+.dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(280px, 320px);
+  gap: 36px;
+}
+.dash-title { font-size: 64px; line-height: 1; }
+.spotlight-h2 { font-size: 30px; line-height: 1.05; }
+.diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.detail-shell { padding: 44px 60px 60px; }
+.detail-h1 { font-size: 40px; line-height: 1.04; }
+.detail-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 24px;
+}
+.detail-paper { padding: 30px 40px 40px; }
+.tape-card { padding: 18px 20px 20px; }
+.spotlight-paper { padding: 26px 30px 28px; }
+
+@media (max-width: 1100px) {
+  .dash-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+  .dash-grid > :nth-child(3) {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 760px) {
+  .dash-shell { padding: 18px 14px; }
+  .dash-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+  .dash-grid > :nth-child(3) { grid-column: auto; }
+  .dash-title { font-size: 38px; }
+  .spotlight-h2 { font-size: 22px; }
+  .diff-grid { grid-template-columns: 1fr; }
+  .detail-shell { padding: 18px 12px 28px; }
+  .detail-h1 { font-size: 26px; }
+  .detail-meta-grid { grid-template-columns: 1fr; }
+  .detail-paper { padding: 20px 18px 24px; }
+  .tape-card { padding: 14px 14px 16px; }
+  .spotlight-paper { padding: 20px 18px 22px; }
+  .row { font-size: 12px; }
+  .row .label { font-size: 11px; }
+  .vibe-stamp .vibe-body { font-size: 17px; }
+}

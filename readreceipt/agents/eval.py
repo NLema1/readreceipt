@@ -2,6 +2,7 @@ import os
 import asyncio
 from readreceipt import config
 from fastmcp import Client
+from fastmcp.utilities.json_schema import compress_schema
 from google import genai
 from google.genai import types
 
@@ -69,7 +70,7 @@ async def run_batch():
                     types.FunctionDeclaration(
                         name=tool.name,
                         description=tool.description,
-                        parameters=tool.inputSchema 
+                        parameters=compress_schema(tool.inputSchema, prune_additional_properties=True)
                     )
                     for tool in mcp_tools_result.tools
                 ]

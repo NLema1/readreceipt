@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import Dashboard from "./components/Dashboard";
 import Timeline from "./components/Timeline";
 import SvgFilters from "./components/receipt/SvgFilters";
-import { fetchArticle, fetchArticles } from "./api";
+import { fetchArticle, fetchArticles, fetchRecentChanges } from "./api";
 import { usePolling } from "./usePolling";
 import { ALL_CHANGE_TYPES } from "./constants";
+import { topVolatile } from "./lib/receipt";
 
 function sinceParam(window) {
   if (window === "all") return "all";
@@ -56,6 +57,16 @@ export default function App() {
     [filters.minSeverity, filters.window, queryText, queryUrl]
   );
 
+  const recentChangesQuery = usePolling(
+    () =>
+      fetchRecentChanges({
+        minSeverity: 1,
+        since: search ? "all" : sinceParam(filters.window),
+      }),
+    30_000,
+    [filters.window, queryText, queryUrl]
+  );
+
   const articleQuery = usePolling(
     () => (selectedId ? fetchArticle(selectedId) : Promise.resolve(null)),
     60_000,
@@ -66,6 +77,19 @@ export default function App() {
     if (!articlesQuery.data) return null;
     return articlesQuery.data;
   }, [articlesQuery.data]);
+
+  const recentChanges = recentChangesQuery.data || null;
+
+  const spotlightId = useMemo(() => {
+    const pick = topVolatile(articles || [], recentChanges);
+    return pick?.id || null;
+  }, [articles, recentChanges]);
+
+  const spotlightQuery = usePolling(
+    () => (spotlightId ? fetchArticle(spotlightId) : Promise.resolve(null)),
+    60_000,
+    [spotlightId]
+  );
 
   const showDetail = selectedId !== null;
 
@@ -82,14 +106,15 @@ export default function App() {
       ) : (
         <Dashboard
           articles={articles}
-          recentChanges={null}
+          recentChanges={recentChanges}
+          spotlight={spotlightQuery.data}
           filters={filters}
           onFiltersChange={setFilters}
           search={search}
           onSearchChange={setSearch}
           onSelectArticle={setSelectedId}
-          loading={articlesQuery.loading}
-          error={articlesQuery.error}
+          loading={articlesQuery.loading || recentChangesQuery.loading}
+          error={articlesQuery.error || recentChangesQuery.error}
         />
       )}
     </>

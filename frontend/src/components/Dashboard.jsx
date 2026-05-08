@@ -10,10 +10,11 @@ import {
   shortSerial,
   volatilityFor,
   maxSeverity,
-  topVolatile,
   outletLedger,
   typeBreakdown,
   dashboardStats,
+  rankByVolatility,
+  topChangeForArticle,
   formatAge,
   formatTimeOfDay,
   typeLabel,
@@ -81,13 +82,11 @@ function ColumnHeader({ kicker, title, sub }) {
   );
 }
 
-function TapeReceipt({ article, onSelect }) {
+function TapeReceipt({ article, recentChanges, onSelect }) {
   if (!article) return null;
-  const sev = maxSeverity(article);
-  const top = (article.changes || []).reduce(
-    (best, c) => (!best || (c.severity || 0) > (best.severity || 0) ? c : best),
-    null
-  );
+  const top = topChangeForArticle(article.id, recentChanges);
+  const sev = top?.severity ?? maxSeverity(article);
+  const changeCount = article.change_count ?? article.changes?.length ?? 0;
   const ageIso = top?.classified_at || article.last_checked || article.first_seen;
   const headline = currentHeadline(article);
   const isVibe = sev >= 4;
@@ -156,7 +155,7 @@ function TapeReceipt({ article, onSelect }) {
       <div className="row">
         <span className="label">CHANGES LOGGED</span>
         <span className="leader" />
-        <span className="value">{String(article.changes?.length || 0).padStart(2, "0")}</span>
+        <span className="value">{String(changeCount).padStart(2, "0")}</span>
       </div>
     </div>
   );
@@ -447,6 +446,7 @@ function FilterStrip({ filters, onChange, search, onSearchChange }) {
 export default function Dashboard({
   articles,
   recentChanges,
+  spotlight,
   filters,
   onFiltersChange,
   search,
@@ -455,15 +455,19 @@ export default function Dashboard({
   loading,
   error,
 }) {
-  const stats = useMemo(() => dashboardStats(articles || []), [articles]);
-  const ledger = useMemo(() => outletLedger(articles || []), [articles]);
-  const breakdown = useMemo(() => typeBreakdown(articles || []), [articles]);
-  const spotlight = useMemo(() => topVolatile(articles || []), [articles]);
-
-  const trending = useMemo(() => {
-    const list = articles || [];
-    return [...list].sort((a, b) => volatilityFor(b) - volatilityFor(a)).slice(0, 6);
-  }, [articles]);
+  const stats = useMemo(
+    () => dashboardStats(articles, recentChanges),
+    [articles, recentChanges]
+  );
+  const ledger = useMemo(
+    () => outletLedger(articles, recentChanges),
+    [articles, recentChanges]
+  );
+  const breakdown = useMemo(() => typeBreakdown(recentChanges), [recentChanges]);
+  const trending = useMemo(
+    () => rankByVolatility(articles, recentChanges, 6),
+    [articles, recentChanges]
+  );
 
   const dateLine = useMemo(() => {
     const d = new Date();
@@ -586,7 +590,12 @@ export default function Dashboard({
               </div>
             )}
             {trending.map((a) => (
-              <TapeReceipt key={a.id} article={a} onSelect={onSelectArticle} />
+              <TapeReceipt
+                key={a.id}
+                article={a}
+                recentChanges={recentChanges}
+                onSelect={onSelectArticle}
+              />
             ))}
           </div>
         </div>

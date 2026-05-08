@@ -53,27 +53,79 @@ export function shortSerial(article) {
   return `RR-…-${hexId(article.id)}`;
 }
 
+// Volatility for a fully-loaded article (detail endpoint, has changes[])
 export function volatilityFor(article) {
-  if (!article || !article.changes) return 0;
-  return article.changes.reduce((s, c) => s + (c.severity || 0), 0);
+  if (!article) return 0;
+  if (Array.isArray(article.changes)) {
+    return article.changes.reduce((s, c) => s + (c.severity || 0), 0);
+  }
+  // Fallback for list-endpoint shape: change_count × max_severity is a
+  // reasonable proxy that preserves the right ordering most of the time.
+  return (article.change_count || 0) * (article.max_severity || 0);
 }
 
 export function maxSeverity(article) {
-  if (!article || !article.changes) return 0;
-  return article.changes.reduce((m, c) => Math.max(m, c.severity || 0), 0);
+  if (!article) return 0;
+  if (Array.isArray(article.changes)) {
+    return article.changes.reduce((m, c) => Math.max(m, c.severity || 0), 0);
+  }
+  return article.max_severity || 0;
 }
 
-export function topVolatile(articles) {
+// Volatility for an article using a recent-changes feed instead of full
+// detail. Sums severities of changes whose article_id matches.
+export function volatilityFromChanges(articleId, recentChanges) {
+  if (!recentChanges) return 0;
+  let s = 0;
+  for (const c of recentChanges) {
+    if (c.article?.id === articleId || c.article_id === articleId) {
+      s += c.severity || 0;
+    }
+  }
+  return s;
+}
+
+// Pick the article with the highest in-window volatility, computed from the
+// recent-changes feed when available; otherwise falls back to the
+// list-shape proxy.
+export function topVolatile(articles, recentChanges) {
   if (!articles || articles.length === 0) return null;
-  return [...articles].sort((a, b) => volatilityFor(b) - volatilityFor(a))[0];
+  const score = (a) =>
+    recentChanges && recentChanges.length
+      ? volatilityFromChanges(a.id, recentChanges)
+      : volatilityFor(a);
+  return [...articles].sort((a, b) => score(b) - score(a))[0];
 }
 
-export function outletLedger(articles) {
+export function rankByVolatility(articles, recentChanges, limit = 6) {
   if (!articles) return [];
+  const score = (a) =>
+    recentChanges && recentChanges.length
+      ? volatilityFromChanges(a.id, recentChanges)
+      : volatilityFor(a);
+  return [...articles]
+    .map((a) => ({ article: a, score: score(a) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((r) => r.article);
+}
+
+// Outlet ledger: sums severity per outlet from the recent-changes feed.
+// Falls back to article.change_count * max_severity proxy when no feed.
+export function outletLedger(articles, recentChanges) {
   const tally = new Map();
-  for (const a of articles) {
-    const v = volatilityFor(a);
-    tally.set(a.outlet, (tally.get(a.outlet) || 0) + v);
+  if (recentChanges && recentChanges.length) {
+    for (const c of recentChanges) {
+      const outlet = c.article?.outlet || c.outlet;
+      if (!outlet) continue;
+      tally.set(outlet, (tally.get(outlet) || 0) + (c.severity || 0));
+    }
+  } else if (articles) {
+    for (const a of articles) {
+      const v = volatilityFor(a);
+      if (!a.outlet) continue;
+      tally.set(a.outlet, (tally.get(a.outlet) || 0) + v);
+    }
   }
   const rows = [...tally.entries()].map(([outlet, score]) => ({
     outlet,
@@ -85,13 +137,13 @@ export function outletLedger(articles) {
   return rows.map((r) => ({ ...r, pct: r.score / max }));
 }
 
-export function typeBreakdown(articles) {
-  if (!articles) return [];
+// Type breakdown: counts by change_type from the recent-changes feed.
+export function typeBreakdown(recentChanges) {
+  if (!recentChanges || !recentChanges.length) return [];
   const tally = new Map();
-  for (const a of articles) {
-    for (const c of a.changes || []) {
-      tally.set(c.change_type, (tally.get(c.change_type) || 0) + 1);
-    }
+  for (const c of recentChanges) {
+    if (!c.change_type) continue;
+    tally.set(c.change_type, (tally.get(c.change_type) || 0) + 1);
   }
   return [...tally.entries()]
     .map(([t, count]) => ({
@@ -102,19 +154,42 @@ export function typeBreakdown(articles) {
     .sort((a, b) => b.count - a.count);
 }
 
-export function dashboardStats(articles) {
-  if (!articles) return { articles: 0, versions: 0, edits: 0, vibeShifts: 0 };
+// Top-of-page stats. Uses articles for "ARTICLES" total; uses recentChanges
+// for edits/vibe-shifts so the numbers reflect the selected window.
+export function dashboardStats(articles, recentChanges) {
   let versions = 0;
   let edits = 0;
   let vibeShifts = 0;
-  for (const a of articles) {
-    versions += a.versions?.length || 0;
-    for (const c of a.changes || []) {
-      if (c.severity >= 3) edits += 1;
-      if (c.severity >= 4) vibeShifts += 1;
+  if (articles) {
+    for (const a of articles) {
+      // Detail endpoint exposes versions[]; list endpoint doesn't, so fall
+      // back to a heuristic of 1 + change_count.
+      if (Array.isArray(a.versions)) {
+        versions += a.versions.length;
+      } else {
+        versions += 1 + (a.change_count || 0);
+      }
     }
   }
-  return { articles: articles.length, versions, edits, vibeShifts };
+  if (recentChanges) {
+    for (const c of recentChanges) {
+      if ((c.severity || 0) >= 3) edits += 1;
+      if ((c.severity || 0) >= 4) vibeShifts += 1;
+    }
+  }
+  return { articles: articles?.length || 0, versions, edits, vibeShifts };
+}
+
+// Look up the most-recent recent-change row for a given article id, useful
+// for showing a preview line on a tape card without fetching detail.
+export function topChangeForArticle(articleId, recentChanges) {
+  if (!recentChanges) return null;
+  let best = null;
+  for (const c of recentChanges) {
+    if (c.article?.id !== articleId && c.article_id !== articleId) continue;
+    if (!best || (c.severity || 0) > (best.severity || 0)) best = c;
+  }
+  return best;
 }
 
 export function formatAge(iso) {

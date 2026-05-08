@@ -15,8 +15,8 @@ export const LOGOS = {
 };
 
 export const LOGO_AR = {
-  bbc: 1, propublica: 7.65, thehill: 1.22, guardian: 3.04, npr: 3,
-  nbc: 1.32, cbs: 1.75, fox: 1, sky: 4.23, aljazeera: 2.96, nypost: 7.38,
+  bbc: 3.13, propublica: 7.65, thehill: 1.22, guardian: 3.04, npr: 3,
+  nbc: 1.32, cbs: 1.75, fox: 3.44, sky: 4.23, aljazeera: 2.96, nypost: 7.38,
 };
 
 export const OUTLET_LABELS = {

@@ -263,7 +263,7 @@ function SpotlightReceipt({ article, onSelect }) {
 
 function LedgerCard({ rows }) {
   return (
-    <div className="paper paper-aged" style={{ padding: "18px 20px", position: "relative" }}>
+    <div className="paper paper-aged ledger-card" style={{ padding: "18px 20px", position: "relative" }}>
       <Perf side="top" />
       <Perf side="bottom" />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -310,7 +310,7 @@ function TypeBreakdownCard({ rows }) {
   const total = rows.reduce((s, x) => s + x.count, 0);
   const max = rows[0]?.count || 1;
   return (
-    <div className="paper" style={{ padding: "18px 20px", position: "relative" }}>
+    <div className="paper breakdown-card" style={{ padding: "18px 20px", position: "relative" }}>
       <Perf side="top" />
       <Perf side="bottom" />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -338,7 +338,7 @@ function TypeBreakdownCard({ rows }) {
 
 function FilterStrip({ filters, onChange, search, onSearchChange }) {
   return (
-    <div className="paper" style={{ padding: "18px 20px", position: "relative" }}>
+    <div className="paper filter-card" style={{ padding: "18px 20px", position: "relative" }}>
       <Perf side="top" />
       <Perf side="bottom" />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -468,6 +468,17 @@ export default function Dashboard({
     () => rankByVolatility(articles, recentChanges, 6),
     [articles, recentChanges]
   );
+
+  const totalVolatility = useMemo(() => {
+    if (!recentChanges) return 0;
+    return recentChanges.reduce((s, c) => s + (c.severity || 0), 0);
+  }, [recentChanges]);
+
+  const tapeStamp = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()} ${String(d.getMonth() + 1).padStart(2, "0")} ${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+  const tapeSerial = `RR-${tapeStamp.replace(/ /g, "-")}-${filters.window.toUpperCase()}`;
 
   const dateLine = useMemo(() => {
     const d = new Date();
@@ -612,20 +623,58 @@ export default function Dashboard({
 
         <div style={{ minWidth: 0 }}>
           <ColumnHeader kicker="LEDGER" title="By the numbers" sub="Outlets · types · cashier" />
-          <LedgerCard rows={ledger} />
-          <div style={{ height: 24 }} />
-          <TypeBreakdownCard rows={breakdown} />
-          <div style={{ height: 24 }} />
-          <FilterStrip
-            filters={filters}
-            onChange={onFiltersChange}
-            search={search}
-            onSearchChange={onSearchChange}
-          />
+          <div className="ledger-col">
+            <FilterStrip
+              filters={filters}
+              onChange={onFiltersChange}
+              search={search}
+              onSearchChange={onSearchChange}
+            />
+            <LedgerCard rows={ledger} />
+            <TypeBreakdownCard rows={breakdown} />
+          </div>
         </div>
       </div>
 
+      <div className="tape-spill">
+        <div className="paper">
+          <hr className="dotted" style={{ margin: "0 0 10px" }} />
+          <div className="row" style={{ fontWeight: 700, fontSize: 14 }}>
+            <span className="label">VOLATILITY (TOTAL)</span>
+            <span className="leader" />
+            <span className="value" style={{ color: "var(--red)", fontSize: 18 }}>
+              {totalVolatility}
+            </span>
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <VolatilityBar value={totalVolatility} max={Math.max(40, totalVolatility)} />
+          </div>
+          <hr className="dotted" />
+          <div
+            className="mono"
+            style={{
+              fontSize: 9,
+              letterSpacing: "0.2em",
+              textAlign: "center",
+              color: "var(--ink-faded)",
+              marginBottom: 8,
+            }}
+          >
+            ✂&nbsp;&nbsp;THANK&nbsp;YOU&nbsp;FOR&nbsp;READING&nbsp;CAREFULLY&nbsp;&nbsp;✂
+          </div>
+          <Barcode seed={tapeSerial} height={36} />
+          <div
+            className="mono"
+            style={{ fontSize: 10, letterSpacing: "0.32em", textAlign: "center", marginTop: 6 }}
+          >
+            *RR {tapeStamp}*
+          </div>
+        </div>
+        <span className="tape-note">↗ tape continues<br /><small>scroll for full log</small></span>
+      </div>
+
       <div
+        className="dash-footer-desktop"
         style={{
           marginTop: 40,
           paddingTop: 18,

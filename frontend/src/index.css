@@ -451,13 +451,23 @@ html, body, #root {
   }
 }
 
+/* desktop: filter strip is below ledger + breakdown in its column */
+.ledger-col { display: flex; flex-direction: column; gap: 24px; }
+.ledger-col > .filter-card { order: 3; }
+.ledger-col > .ledger-card { order: 1; }
+.ledger-col > .breakdown-card { order: 2; }
+
+/* mobile-only tape spill (defaults to hidden) */
+.tape-spill { display: none; }
+
 @media (max-width: 760px) {
   .dash-shell { padding: 18px 14px; }
   .dash-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 22px;
   }
-  .dash-grid > :nth-child(3) { grid-column: auto; }
+  .dash-grid > :nth-child(3) { grid-column: auto; order: -1; }
+  .ledger-col > .filter-card { order: -1; }
   .dash-title { font-size: 38px; }
   .spotlight-h2 { font-size: 22px; }
   .diff-grid { grid-template-columns: 1fr; }
@@ -470,4 +480,47 @@ html, body, #root {
   .row { font-size: 12px; }
   .row .label { font-size: 11px; }
   .vibe-stamp .vibe-body { font-size: 17px; }
+
+  /* the receipt "spills" past the screen onto the desk */
+  .dash-footer-desktop { display: none; }
+  .tape-spill {
+    display: block;
+    position: relative;
+    margin: 32px 8px 80px;
+    transform: rotate(-2deg);
+    transform-origin: top center;
+  }
+  .tape-spill > .paper {
+    padding: 16px 20px 22px;
+    box-shadow:
+      0 25px 40px -10px rgba(0, 0, 0, 0.7),
+      0 -2px 0 rgba(0, 0, 0, 0.15) inset;
+    position: relative;
+  }
+  .tape-spill > .paper::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -12px;
+    height: 14px;
+    background:
+      linear-gradient(135deg, var(--paper) 25%, transparent 25%) -1px 0/14px 14px,
+      linear-gradient(225deg, var(--paper) 25%, transparent 25%) -1px 0/14px 14px;
+  }
+  .tape-spill .tape-note {
+    position: absolute;
+    top: -22px;
+    right: 16px;
+    transform: rotate(-6deg);
+    color: #d8c79a;
+    font-size: 14px;
+    line-height: 1.15;
+    font-family: var(--type);
+    pointer-events: none;
+    text-align: right;
+  }
+  .tape-spill .tape-note small {
+    display: block;
+    font-size: 11px;
+    opacity: 0.6;
+  }
 }

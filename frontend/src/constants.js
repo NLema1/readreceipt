@@ -67,6 +67,11 @@ export const ALL_CHANGE_TYPES = [
   "other",
 ];
 
+export const ALL_OUTLETS = [
+  "guardian", "bbc", "npr", "aljazeera", "propublica",
+  "nbc", "cbs", "thehill", "sky", "fox", "nypost",
+];
+
 export const OUTLET_LABELS = {
   guardian: "Guardian",
   bbc: "BBC",

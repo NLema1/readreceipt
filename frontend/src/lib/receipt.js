@@ -192,6 +192,63 @@ export function topChangeForArticle(articleId, recentChanges) {
   return best;
 }
 
+export function latestChangeIsoForArticle(articleId, recentChanges) {
+  if (!recentChanges) return null;
+  let latest = null;
+  for (const c of recentChanges) {
+    if (c.article?.id !== articleId && c.article_id !== articleId) continue;
+    const iso = c.classified_at;
+    if (!iso) continue;
+    if (!latest || iso > latest) latest = iso;
+  }
+  return latest;
+}
+
+export function filterChanges(recentChanges, { outlets, changeTypes } = {}) {
+  if (!recentChanges) return [];
+  const allOutlets = !outlets || outlets.length === 0;
+  const allTypes = !changeTypes || changeTypes.length === 0;
+  if (allOutlets && allTypes) return recentChanges;
+  return recentChanges.filter((c) => {
+    if (!allOutlets) {
+      const o = c.article?.outlet || c.outlet;
+      if (!outlets.includes(o)) return false;
+    }
+    if (!allTypes && !changeTypes.includes(c.change_type)) return false;
+    return true;
+  });
+}
+
+export function filterArticles(articles, { outlets, changeTypes, recentChanges } = {}) {
+  if (!articles) return [];
+  const allOutlets = !outlets || outlets.length === 0;
+  const allTypes = !changeTypes || changeTypes.length === 0;
+  let list = articles;
+  if (!allOutlets) list = list.filter((a) => outlets.includes(a.outlet));
+  if (!allTypes && recentChanges) {
+    const allowedIds = new Set(
+      recentChanges
+        .filter((c) => changeTypes.includes(c.change_type))
+        .map((c) => c.article?.id ?? c.article_id)
+        .filter(Boolean)
+    );
+    list = list.filter((a) => allowedIds.has(a.id));
+  }
+  return list;
+}
+
+// Sort articles by most-recent change activity (from the recent-changes
+// feed). Articles with no recent activity fall back to first_seen.
+// Returns up to `limit` articles, most recent first.
+export function rankByRecency(articles, recentChanges, limit = 12) {
+  if (!articles) return [];
+  const score = (a) => {
+    const iso = latestChangeIsoForArticle(a.id, recentChanges) || a.first_seen;
+    return iso ? new Date(iso).getTime() : 0;
+  };
+  return [...articles].sort((a, b) => score(b) - score(a)).slice(0, limit);
+}
+
 export function formatAge(iso) {
   if (!iso) return "—";
   const t = new Date(iso).getTime();

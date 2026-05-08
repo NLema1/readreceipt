@@ -13,7 +13,7 @@ import {
   outletLedger,
   typeBreakdown,
   dashboardStats,
-  rankByVolatility,
+  rankByRecency,
   topChangeForArticle,
   formatAge,
   formatTimeOfDay,
@@ -21,6 +21,7 @@ import {
   currentHeadline,
   originalHeadline,
 } from "../lib/receipt";
+import { ALL_CHANGE_TYPES, ALL_OUTLETS } from "../constants";
 
 function Stat({ label, value, tone }) {
   return (
@@ -408,6 +409,150 @@ function FilterStrip({ filters, onChange, search, onSearchChange }) {
       </div>
       <div style={{ marginTop: 14 }}>
         <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: 6,
+          }}
+        >
+          <span
+            className="mono"
+            style={{ fontSize: 10, letterSpacing: "0.18em", color: "var(--ink-faded)" }}
+          >
+            OUTLETS
+          </span>
+          <button
+            onClick={() =>
+              onChange({
+                ...filters,
+                outlets:
+                  filters.outlets.length === ALL_OUTLETS.length ? [] : ALL_OUTLETS,
+              })
+            }
+            className="mono"
+            style={{
+              fontSize: 9,
+              letterSpacing: "0.18em",
+              color: "var(--ink-faded)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+              textTransform: "uppercase",
+            }}
+          >
+            {filters.outlets.length === ALL_OUTLETS.length ? "clear" : "all"}
+          </button>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          {ALL_OUTLETS.map((o) => {
+            const on = filters.outlets.includes(o);
+            return (
+              <button
+                key={o}
+                onClick={() =>
+                  onChange({
+                    ...filters,
+                    outlets: on
+                      ? filters.outlets.filter((x) => x !== o)
+                      : [...filters.outlets, o],
+                  })
+                }
+                className="mono"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.08em",
+                  padding: "2px 6px",
+                  border: "1px solid var(--ink)",
+                  background: on ? "var(--ink)" : "transparent",
+                  color: on ? "var(--paper)" : "var(--ink)",
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                  fontWeight: 600,
+                }}
+              >
+                {OUTLET_LABELS[o] || o}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: 6,
+          }}
+        >
+          <span
+            className="mono"
+            style={{ fontSize: 10, letterSpacing: "0.18em", color: "var(--ink-faded)" }}
+          >
+            EDIT TYPES
+          </span>
+          <button
+            onClick={() =>
+              onChange({
+                ...filters,
+                changeTypes:
+                  filters.changeTypes.length === ALL_CHANGE_TYPES.length
+                    ? []
+                    : ALL_CHANGE_TYPES,
+              })
+            }
+            className="mono"
+            style={{
+              fontSize: 9,
+              letterSpacing: "0.18em",
+              color: "var(--ink-faded)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+              textTransform: "uppercase",
+            }}
+          >
+            {filters.changeTypes.length === ALL_CHANGE_TYPES.length ? "clear" : "all"}
+          </button>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          {ALL_CHANGE_TYPES.map((t) => {
+            const on = filters.changeTypes.includes(t);
+            return (
+              <button
+                key={t}
+                onClick={() =>
+                  onChange({
+                    ...filters,
+                    changeTypes: on
+                      ? filters.changeTypes.filter((x) => x !== t)
+                      : [...filters.changeTypes, t],
+                  })
+                }
+                className="mono"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.08em",
+                  padding: "2px 6px",
+                  border: "1px solid var(--ink)",
+                  background: on ? "var(--ink)" : "transparent",
+                  color: on ? "var(--paper)" : "var(--ink)",
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                  fontWeight: 600,
+                }}
+              >
+                {typeLabel(t)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <div
           className="mono"
           style={{ fontSize: 10, letterSpacing: "0.18em", color: "var(--ink-faded)", marginBottom: 6 }}
         >
@@ -465,7 +610,7 @@ export default function Dashboard({
   );
   const breakdown = useMemo(() => typeBreakdown(recentChanges), [recentChanges]);
   const trending = useMemo(
-    () => rankByVolatility(articles, recentChanges, 6),
+    () => rankByRecency(articles, recentChanges, 12),
     [articles, recentChanges]
   );
 
@@ -584,7 +729,11 @@ export default function Dashboard({
 
       <div className="dash-grid">
         <div style={{ minWidth: 0 }}>
-          <ColumnHeader kicker="TAPE №&nbsp;01" title="Today’s tape" sub="Most volatile, top of the pile" />
+          <ColumnHeader
+            kicker="TAPE №&nbsp;01"
+            title={filters.window === "24h" ? "Today’s tape" : "On the tape"}
+            sub={`Articles in window · ${filters.window.toUpperCase()} · sorted by latest activity`}
+          />
           <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
             {trending.length === 0 && !loading && (
               <div className="paper" style={{ padding: 18 }}>

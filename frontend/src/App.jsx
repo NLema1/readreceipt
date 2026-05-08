@@ -4,8 +4,12 @@ import Timeline from "./components/Timeline";
 import SvgFilters from "./components/receipt/SvgFilters";
 import { fetchArticle, fetchArticles, fetchRecentChanges } from "./api";
 import { usePolling } from "./usePolling";
-import { ALL_CHANGE_TYPES } from "./constants";
-import { topVolatile } from "./lib/receipt";
+import { ALL_CHANGE_TYPES, ALL_OUTLETS } from "./constants";
+import {
+  filterArticles,
+  filterChanges,
+  topVolatile,
+} from "./lib/receipt";
 
 function sinceParam(window) {
   if (window === "all") return "all";
@@ -26,17 +30,12 @@ function normalizeUrlInput(s) {
   return trimmed;
 }
 
-const ALL_OUTLETS = [
-  "guardian", "bbc", "npr", "aljazeera", "propublica",
-  "nbc", "cbs", "thehill", "sky", "fox", "nypost",
-];
-
 export default function App() {
   const [filters, setFilters] = useState({
     minSeverity: 2,
     outlets: ALL_OUTLETS,
     changeTypes: ALL_CHANGE_TYPES,
-    window: "7d",
+    window: "24h",
   });
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState(null);
@@ -45,26 +44,45 @@ export default function App() {
   const queryUrl = isUrl ? normalizeUrlInput(search) : undefined;
   const queryText = !isUrl && search.trim() ? search.trim() : undefined;
 
+  // Server can take a single outlet param; if exactly one outlet is picked we
+  // narrow at the API. Otherwise fetch the full set and refine client-side.
+  const singleOutletParam =
+    filters.outlets.length === 1 && !search ? filters.outlets[0] : undefined;
+  const useChangeTypeFilter =
+    !search &&
+    filters.changeTypes.length > 0 &&
+    filters.changeTypes.length < ALL_CHANGE_TYPES.length;
+
   const articlesQuery = usePolling(
     () =>
       fetchArticles({
         minSeverity: search ? 0 : filters.minSeverity,
+        outlet: singleOutletParam,
         since: search ? "all" : sinceParam(filters.window),
         q: queryText,
         url: queryUrl,
+        changeTypes: useChangeTypeFilter ? filters.changeTypes : undefined,
       }),
     30_000,
-    [filters.minSeverity, filters.window, queryText, queryUrl]
+    [
+      filters.minSeverity,
+      filters.window,
+      filters.outlets.join(","),
+      filters.changeTypes.join(","),
+      queryText,
+      queryUrl,
+    ]
   );
 
   const recentChangesQuery = usePolling(
     () =>
       fetchRecentChanges({
         minSeverity: 1,
+        outlet: singleOutletParam,
         since: search ? "all" : sinceParam(filters.window),
       }),
     30_000,
-    [filters.window, queryText, queryUrl]
+    [filters.window, filters.outlets.join(","), queryText, queryUrl]
   );
 
   const articleQuery = usePolling(
@@ -73,12 +91,29 @@ export default function App() {
     [selectedId]
   );
 
-  const articles = useMemo(() => {
-    if (!articlesQuery.data) return null;
-    return articlesQuery.data;
-  }, [articlesQuery.data]);
+  const recentChangesAll = recentChangesQuery.data || null;
+  const articlesAll = articlesQuery.data || null;
 
-  const recentChanges = recentChangesQuery.data || null;
+  // Apply filters that the API doesn't fully cover (multi-outlet, multi-type
+  // for the changes feed). The dashboard sees only the filtered set.
+  const recentChanges = useMemo(
+    () =>
+      filterChanges(recentChangesAll, {
+        outlets: filters.outlets,
+        changeTypes: filters.changeTypes,
+      }),
+    [recentChangesAll, filters.outlets, filters.changeTypes]
+  );
+
+  const articles = useMemo(
+    () =>
+      filterArticles(articlesAll, {
+        outlets: filters.outlets,
+        changeTypes: filters.changeTypes,
+        recentChanges: recentChangesAll,
+      }),
+    [articlesAll, filters.outlets, filters.changeTypes, recentChangesAll]
+  );
 
   const spotlightId = useMemo(() => {
     const pick = topVolatile(articles || [], recentChanges);

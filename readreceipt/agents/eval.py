@@ -84,7 +84,23 @@ async def run_batch():
     # for each, send to Gemini with MCP tools attached
     # log results
     async with mcp_client:
-        session = mcp_client.session
+        mcp_tools = await mcp_client.list_tools_mcp()
+
+        # 2. Map them in one clean list comprehension
+        gemini_tools = [
+            types.Tool(
+                function_declarations=[
+                    types.FunctionDeclaration(
+                        name=tool.name,
+                        description=tool.description,
+                        # Gemini's SDK is picky: 'parameters' must be a dict or a specific Type object
+                        parameters=tool.inputSchema 
+                    )
+                    for tool in mcp_tools.tools
+                ]
+            )
+        ]
+
         result = await mcp_client.call_tool("list_unevaluated_changes", {"evaluator": MODEL})
         change_ids = result.data  # or .structured_content, check docs
 
@@ -96,14 +112,52 @@ async def run_batch():
                     evaluator=MODEL,
                     prompt_version=PROMPT_VERSION,
                 )
-            #calling gemini for each change
-                response = await client.aio.models.generate_content(
-                    model=MODEL,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                            tools=[mcp_client]))
-                print(f"[{change_id}] response.text: {response.text[:300] if response.text else 'EMPTY'}")
-                print(f"[{change_id}] function_calls: {response.function_calls}")
+                #calling gemini for each change
+                chat = client.aio.chats.create(
+                model=MODEL,
+                config=types.GenerateContentConfig(tools=gemini_tools),
+                )
+                response = await chat.send_message(prompt)
+                while response.function_calls:
+                # We'll collect the results of all requested tool calls
+                # and send them back to Gemini in one batch.
+                    function_response_parts = []
+
+                     #Execute each tool call Gemini requested.
+                    for fc in response.function_calls:
+                        try:
+                            # Run the tool via MCP. fc.name is the tool name,
+                            # dict(fc.args) converts Gemini's args object to a
+                            # plain dict that MCP expects.
+                            tool_result = await mcp_client.call_tool(
+                                fc.name, dict(fc.args)
+                            )
+                            # Wrap the tool's result as a function_response Part
+                            # that we'll send back to Gemini.
+                            function_response_parts.append(
+                                types.Part.from_function_response(
+                                    name=fc.name,
+                                    response={"result": tool_result.data},
+                                )
+                            )
+                        except Exception as tool_error:
+                            # If the tool itself errored, send the error back to
+                            # Gemini instead of crashing. Gemini can decide what
+                            # to do (retry, skip, etc.).
+                            function_response_parts.append(
+                                types.Part.from_function_response(
+                                    name=fc.name,
+                                    response={"error": str(tool_error)},
+                                )
+                            )
+
+                    # Step 8: Send all tool results back to Gemini.
+                    # Gemini reads them, then either:
+                    #   - requests another tool call (loop continues), or
+                    #   - emits a final text response with no function_calls
+                    #     (loop exits).
+                    response = await chat.send_message(function_response_parts)
+    
                 print(f"[{change_id}] OK")
                 await asyncio.sleep(1)
             except Exception as e:

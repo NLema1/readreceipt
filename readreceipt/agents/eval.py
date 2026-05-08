@@ -102,6 +102,8 @@ async def run_batch():
                     contents=prompt,
                     config=types.GenerateContentConfig(
                             tools=[mcp_client]))
+                print(f"[{change_id}] response.text: {response.text[:300] if response.text else 'EMPTY'}")
+                print(f"[{change_id}] function_calls: {response.function_calls}")
                 print(f"[{change_id}] OK")
                 await asyncio.sleep(1)
             except Exception as e:

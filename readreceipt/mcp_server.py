@@ -11,16 +11,23 @@ from readreceipt.storage import (
     get_change_with_versions,
     session_scope,
     create_engine_only,
-    submit_evaluation
-)
-auth_token = os.environ["MCP_AUTH_TOKEN"]
-verifier = StaticTokenVerifier(
-    tokens= {auth_token: {"client_id": "eval-pipeline", "scopes": ["read", "write"]}},
+    submit_evaluation,
+    find_unevaluated_changes
 )
 
-mcp = FastMCP("readreceipt", auth=verifier)
 cfg = config.load()
-engine =  create_engine_only(cfg.database_url)
+
+if cfg.mcp_auth_token is None:
+    raise RuntimeError("MCP_AUTH_TOKEN is required to run the MCP server")
+
+verifier = StaticTokenVerifier(
+    tokens= {cfg.mcp_auth_token: {"client_id": "eval-pipeline", "scopes": ["read", "write"]}},
+)
+engine = create_engine_only(cfg.database_url)
+
+
+mcp = FastMCP("readreceipt", auth=verifier)
+
 
 @mcp.tool()
 def submit_mcp_evaluation(change_id: int, severity: int, change_type: str, reasoning: str, evaluator: str, prompt_version: str) -> dict:
@@ -63,7 +70,11 @@ Returns:
    
 @mcp.tool()
 def get_change_detail(change_id: int) -> dict:
-    """Returns before/after content + Haiku's classification for one change."""
+    """Returns before/after content + Haiku's classification for one change.
+    
+    Args:
+        change_id Identifier of relevant dataset 
+    """
     with session_scope(engine) as session:
         result = get_change_with_versions(session, change_id)
         if result is None:
@@ -92,6 +103,24 @@ def get_change_detail(change_id: int) -> dict:
                 "scraped_at": to_v.scraped_at.isoformat(),
             },
         }
+    
+@mcp.tool()
+def list_unevaluated_changes(evaluator: str)-> list[int]:
+    """Return change_ids that haven't been evaluated by this evaluator yet.
+    
+    Use this at the start of an evaluation batch to discover which changes need work.
+    Only changes with severity >= 3 are returned. Results are ordered most recent first.
+
+    Args:
+        evaluator: Identifier of the evaluator asking, e.g. "gemini-2.5-flash"
+        that have NOT yet been evaluated by this evaluator are returned
+    Returns:
+    List of change_ids (integers) needing evaluation. Empty list if none pending
+    """
+    with session_scope(engine) as session:
+        return find_unevaluated_changes(session, evaluator)
+
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8001))

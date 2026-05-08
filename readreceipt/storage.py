@@ -148,7 +148,7 @@ def session_scope(engine):
 from datetime import timedelta
 from typing import NamedTuple, Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, and_
 
 
 class ArticleStats(NamedTuple):
@@ -195,6 +195,16 @@ def submit_evaluation(session: Session, change_id: int, severity: int, change_ty
     session.add(evaluation)
     session.flush()
     return evaluation
+
+
+def find_unevaluated_changes(session: Session, evaluator: str)-> list[int]:
+    return session.execute(
+        select(Change.id)
+        .outerjoin(Evaluation, and_(Change.id == Evaluation.change_id, Evaluation.evaluator == evaluator),)
+        .where(Evaluation.id.is_(None))
+        .where(Change.severity >=3)
+        .order_by(Change.classified_at.desc())
+    ).scalars().all()
 
 
 def get_latest_version(session: Session, article_id: int) -> Optional[Version]:

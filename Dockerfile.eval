@@ -1,0 +1,17 @@
+# ---- Eval pipeline runtime ----
+FROM python:3.11-slim
+WORKDIR /app
+
+# Copy and install dependencies first
+# (Dockerfile layer caching: if requirements don't change, this layer is reused)
+COPY eval-requirements.txt .
+RUN pip install --no-cache-dir -r requirements-eval.txt
+
+# Copy the application code
+COPY readreceipt/ ./readreceipt/
+
+# Make Python output unbuffered so logs appear in Railway in real-time
+ENV PYTHONUNBUFFERED=1
+
+# When the container starts, run the eval pipeline once and exit
+CMD ["python", "-m", "readreceipt.agents.eval_pipeline"]

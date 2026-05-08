@@ -429,7 +429,3 @@ def classify_change(
     raise ClassifierError("model did not call classify_change tool")
 
 
-def make_client(api_key: Optional[str]) -> anthropic.Anthropic:
-    if not api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY is required")
-    return anthropic.Anthropic(api_key=api_key)

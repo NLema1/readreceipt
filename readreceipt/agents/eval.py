@@ -60,71 +60,70 @@ Change types: {change_types}
 Do not write code blocks. Do not show example tool outputs. Do not narrate your reasoning step by step. Use the tools directly and submit one evaluation."""
 
 async def run_batch():
-    # find unevaluated changes
-    # loop through them
-    # for each, send to Gemini with MCP tools attached
-    # log results
     async with mcp_client:
-        mcp_tools = await mcp_client.list_tools_mcp()
-
-        # 2. Map them in one clean list comprehension
+        # 1. Fetch and Map Tools
+        mcp_tools_result = await mcp_client.list_tools_mcp()
         gemini_tools = [
             types.Tool(
                 function_declarations=[
                     types.FunctionDeclaration(
                         name=tool.name,
                         description=tool.description,
-                        # Gemini's SDK is picky: 'parameters' must be a dict or a specific Type object
                         parameters=tool.inputSchema 
                     )
-                    for tool in mcp_tools.tools
+                    for tool in mcp_tools_result.tools
                 ]
             )
         ]
 
+        # 2. Identify changes that need eyes
         result = await mcp_client.call_tool("list_unevaluated_changes", {"evaluator": MODEL})
-        change_ids = result.data  # or .structured_content, check docs
+        change_ids = result.data  # Adjust based on your MCP return type
 
         for change_id in change_ids:
             try:
+                # --- The Critical Missing Piece ---
                 prompt = EVAL_PROMPT.format(
                     change_id=change_id,
                     change_types=", ".join(sorted(CHANGE_TYPES)),
                     evaluator=MODEL,
                     prompt_version=PROMPT_VERSION,
                 )
-                #calling gemini for each change
+
+                # 3. Start a fresh chat for this specific change
                 chat = client.aio.chats.create(
-                model=MODEL,
-                config=types.GenerateContentConfig(tools=gemini_tools, temperature=0.7),
+                    model=MODEL,
+                    config=types.GenerateContentConfig(
+                        tools=gemini_tools, 
+                        temperature=0.7
+                    ),
                 )
+                
                 response = await chat.send_message(prompt)
+
+                # 4. Handle the back-and-forth (Tool Orchestration)
                 while response.function_calls:
-                # We'll collect the results of all requested tool calls
-                # and send them back to Gemini in one batch.
                     function_response_parts = []
 
-                     #Execute each tool call Gemini requested.
                     for fc in response.function_calls:
                         try:
-                            # Run the tool via MCP. fc.name is the tool name,
-                            # dict(fc.args) converts Gemini's args object to a
-                            # plain dict that MCP expects.
+                            # Execute the tool via MCP
                             tool_result = await mcp_client.call_tool(
                                 fc.name, dict(fc.args)
                             )
-                            # Wrap the tool's result as a function_response Part
-                            # that we'll send back to Gemini.
+                            
+                            # Standard MCP tools often return data in a .content list
+                            # If your server returns raw data in .data, keep it as is.
+                            # Usually: tool_output = tool_result.content[0].text
+                            tool_output = tool_result.data 
+
                             function_response_parts.append(
                                 types.Part.from_function_response(
                                     name=fc.name,
-                                    response={"result": tool_result.data},
+                                    response={"result": tool_output},
                                 )
                             )
                         except Exception as tool_error:
-                            # If the tool itself errored, send the error back to
-                            # Gemini instead of crashing. Gemini can decide what
-                            # to do (retry, skip, etc.).
                             function_response_parts.append(
                                 types.Part.from_function_response(
                                     name=fc.name,
@@ -132,15 +131,12 @@ async def run_batch():
                                 )
                             )
 
-                    # Step 8: Send all tool results back to Gemini.
-                    # Gemini reads them, then either:
-                    #   - requests another tool call (loop continues), or
-                    #   - emits a final text response with no function_calls
-                    #     (loop exits).
+                    # Send the tool findings back to Gemini to get the verdict
                     response = await chat.send_message(function_response_parts)
     
-                print(f"[{change_id}] OK")
-                await asyncio.sleep(1)
+                print(f"[{change_id}] Evaluation Submitted.")
+                await asyncio.sleep(1) # Rate limit padding for the Palantir-tier speed ;)
+
             except Exception as e:
                 print(f"Failed change {change_id}: {e}")
 

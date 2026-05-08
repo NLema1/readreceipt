@@ -342,37 +342,42 @@ export default function Landing() {
       {/* OUTLET MARQUEE */}
       <div
         style={{
-          padding: "20px 56px",
+          padding: "22px 56px 26px",
           borderTop: `1px solid ${RR.hair}`,
           borderBottom: `1px solid ${RR.hair}`,
           background: RR.paper2,
         }}
       >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
+          <Kicker>Currently watching · {OUTLET_KEYS.length} outlets</Kicker>
+          <Mono style={{ color: RR.soft, fontSize: 10, letterSpacing: "0.16em" }}>
+            POLLED EVERY 5 MIN
+          </Mono>
+        </div>
         <div
           style={{
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: `repeat(${OUTLET_KEYS.length}, 1fr)`,
             alignItems: "center",
-            justifyContent: "space-between",
-            gap: 32,
+            gap: 24,
           }}
         >
-          <Kicker style={{ flexShrink: 0 }}>Currently watching</Kicker>
-          <div style={{ display: "flex", gap: 36, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-            {OUTLET_KEYS.map((k) => (
+          {OUTLET_KEYS.map((k) => (
+            <div key={k} style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 24 }}>
               <img
-                key={k}
                 src={OUTLETS[k].logo}
                 alt={OUTLETS[k].label}
                 style={{
-                  height: 18,
+                  maxHeight: 20,
+                  maxWidth: "100%",
                   width: "auto",
-                  maxWidth: 70,
+                  height: "auto",
                   objectFit: "contain",
                   filter: "grayscale(1) contrast(1.05) opacity(0.75)",
                 }}
               />
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -688,32 +693,34 @@ export default function Landing() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3,1fr)",
+            gridTemplateColumns: "repeat(4,1fr)",
             gap: 1,
             background: RR.hair,
             marginTop: 12,
             border: `1px solid ${RR.hair}`,
           }}
         >
-          {OUTLET_KEYS.slice(0, 9).map((k) => (
+          {OUTLET_KEYS.map((k) => (
             <div
               key={k}
               style={{
                 background: RR.paper,
-                padding: "18px 8px",
+                padding: "14px 6px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                height: 64,
+                height: 56,
               }}
             >
               <img
                 src={OUTLETS[k].logo}
                 alt={OUTLETS[k].label}
-                style={{ maxHeight: 22, maxWidth: "90%", objectFit: "contain", filter: "grayscale(1)" }}
+                style={{ maxHeight: 18, maxWidth: "85%", objectFit: "contain", filter: "grayscale(1)" }}
               />
             </div>
           ))}
+          {/* 12th cell to keep the 4-col grid square — hairline only */}
+          <div style={{ background: RR.paper2, height: 56 }} />
         </div>
       </div>
 

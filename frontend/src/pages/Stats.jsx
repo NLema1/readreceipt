@@ -227,12 +227,12 @@ export default function Stats() {
                 key={r.outlet}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "120px 1fr 60px",
+                  gridTemplateColumns: "140px 1fr 60px",
                   gap: 14,
                   alignItems: "center",
                 }}
               >
-                <OutletMark outlet={r.outlet} height={11} />
+                <OutletMark outlet={r.outlet} height={12} logoBox={44} />
                 <div style={{ position: "relative", height: 18, background: RR.paper2 }}>
                   <div
                     style={{

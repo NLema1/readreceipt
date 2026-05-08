@@ -5,7 +5,7 @@ WORKDIR /app
 # Copy and install dependencies first
 # (Dockerfile layer caching: if requirements don't change, this layer is reused)
 COPY eval-requirements.txt .
-RUN pip install --no-cache-dir -r requirements-eval.txt
+RUN pip install --no-cache-dir -r eval-requirements.txt
 
 # Copy the application code
 COPY readreceipt/ ./readreceipt/

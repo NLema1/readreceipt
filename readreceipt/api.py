@@ -8,6 +8,7 @@ from readreceipt.storage import (
     Article,
     Change,
     Version,
+    get_dashboard_stats,
     list_articles_with_change_stats,
     session_scope,
 )
@@ -116,6 +117,23 @@ def build_app(*, engine) -> FastAPI:
                 "versions": [_serialize_version(v) for v in versions],
                 "changes": [_serialize_change(c) for c in changes],
             }
+
+    @app.get("/api/stats")
+    def stats(
+        min_severity: int = Query(0, ge=0, le=5),
+        outlet: Optional[str] = None,
+        since: Optional[str] = None,
+        change_type: Optional[list[str]] = Query(None),
+    ):
+        since_dt = _resolve_since(since)
+        with session_scope(engine) as s:
+            return get_dashboard_stats(
+                s,
+                min_severity=min_severity,
+                outlet=outlet,
+                since=since_dt,
+                change_types=change_type,
+            )
 
     @app.get("/api/changes/recent")
     def recent_changes(

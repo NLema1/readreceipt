@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import Dashboard from "./components/Dashboard";
 import Timeline from "./components/Timeline";
 import SvgFilters from "./components/receipt/SvgFilters";
-import { fetchArticle, fetchArticles, fetchRecentChanges } from "./api";
+import { fetchArticle, fetchArticles, fetchRecentChanges, fetchStats } from "./api";
 import { usePolling } from "./usePolling";
 import { ALL_CHANGE_TYPES, ALL_OUTLETS } from "./constants";
 import {
@@ -80,9 +80,27 @@ export default function App() {
         minSeverity: 1,
         outlet: singleOutletParam,
         since: search ? "all" : sinceParam(filters.window),
+        limit: 500,
       }),
     30_000,
     [filters.window, filters.outlets.join(","), queryText, queryUrl]
+  );
+
+  const statsQuery = usePolling(
+    () =>
+      fetchStats({
+        minSeverity: filters.minSeverity,
+        outlet: singleOutletParam,
+        since: sinceParam(filters.window),
+        changeTypes: useChangeTypeFilter ? filters.changeTypes : undefined,
+      }),
+    30_000,
+    [
+      filters.minSeverity,
+      filters.window,
+      filters.outlets.join(","),
+      filters.changeTypes.join(","),
+    ]
   );
 
   const articleQuery = usePolling(
@@ -95,24 +113,32 @@ export default function App() {
   const articlesAll = articlesQuery.data || null;
 
   // Apply filters that the API doesn't fully cover (multi-outlet, multi-type
-  // for the changes feed). The dashboard sees only the filtered set.
+  // for the changes feed). When "all" is selected on either dimension, skip
+  // the include-filter entirely so unknown outlets/types pass through.
+  const outletsArg =
+    filters.outlets.length === ALL_OUTLETS.length ? undefined : filters.outlets;
+  const changeTypesArg =
+    filters.changeTypes.length === ALL_CHANGE_TYPES.length
+      ? undefined
+      : filters.changeTypes;
+
   const recentChanges = useMemo(
     () =>
       filterChanges(recentChangesAll, {
-        outlets: filters.outlets,
-        changeTypes: filters.changeTypes,
+        outlets: outletsArg,
+        changeTypes: changeTypesArg,
       }),
-    [recentChangesAll, filters.outlets, filters.changeTypes]
+    [recentChangesAll, outletsArg, changeTypesArg]
   );
 
   const articles = useMemo(
     () =>
       filterArticles(articlesAll, {
-        outlets: filters.outlets,
-        changeTypes: filters.changeTypes,
+        outlets: outletsArg,
+        changeTypes: changeTypesArg,
         recentChanges: recentChangesAll,
       }),
-    [articlesAll, filters.outlets, filters.changeTypes, recentChangesAll]
+    [articlesAll, outletsArg, changeTypesArg, recentChangesAll]
   );
 
   const spotlightId = useMemo(() => {
@@ -142,6 +168,7 @@ export default function App() {
         <Dashboard
           articles={articles}
           recentChanges={recentChanges}
+          stats={statsQuery.data}
           spotlight={spotlightQuery.data}
           filters={filters}
           onFiltersChange={setFilters}
@@ -149,7 +176,7 @@ export default function App() {
           onSearchChange={setSearch}
           onSelectArticle={setSelectedId}
           loading={articlesQuery.loading || recentChangesQuery.loading}
-          error={articlesQuery.error || recentChangesQuery.error}
+          error={articlesQuery.error || recentChangesQuery.error || statsQuery.error}
         />
       )}
     </>

@@ -256,6 +256,94 @@ def list_articles_with_change_stats(
     ]
 
 
+def get_dashboard_stats(
+    session: Session,
+    *,
+    min_severity: int = 0,
+    outlet: Optional[str] = None,
+    since: Optional[datetime] = None,
+    change_types: Optional[list[str]] = None,
+) -> dict:
+    """Aggregate counts and groupings used by the dashboard top-bar + ledgers.
+
+    Filters apply to the changes table (severity, classified_at, outlet via
+    join, change_type). Returns counts that survive any LIMIT cap because
+    they're computed via SQL aggregates rather than client-side iteration.
+    """
+
+    def _apply_filters(stmt):
+        if min_severity and min_severity > 0:
+            stmt = stmt.where(Change.severity >= min_severity)
+        if since:
+            stmt = stmt.where(Change.classified_at >= since)
+        if outlet:
+            stmt = stmt.where(Article.outlet == outlet)
+        if change_types:
+            stmt = stmt.where(Change.change_type.in_(change_types))
+        return stmt
+
+    base = select(Change.id).join(Article, Article.id == Change.article_id)
+    base = _apply_filters(base)
+
+    distinct_article_q = select(func.count(func.distinct(Change.article_id))).join(
+        Article, Article.id == Change.article_id
+    )
+    distinct_article_q = _apply_filters(distinct_article_q)
+    article_count = session.execute(distinct_article_q).scalar() or 0
+
+    edits_q = select(func.count(Change.id)).join(Article, Article.id == Change.article_id)
+    edits_q = _apply_filters(edits_q.where(Change.severity >= 3))
+    edits = session.execute(edits_q).scalar() or 0
+
+    vibe_q = select(func.count(Change.id)).join(Article, Article.id == Change.article_id)
+    vibe_q = _apply_filters(vibe_q.where(Change.severity >= 4))
+    vibe_shifts = session.execute(vibe_q).scalar() or 0
+
+    versions_q = select(func.count(Version.id)).where(
+        Version.article_id.in_(
+            _apply_filters(
+                select(Change.article_id).join(Article, Article.id == Change.article_id)
+            )
+        )
+    )
+    versions = session.execute(versions_q).scalar() or 0
+
+    outlet_q = (
+        select(Article.outlet, func.coalesce(func.sum(Change.severity), 0).label("score"))
+        .join(Article, Article.id == Change.article_id)
+        .group_by(Article.outlet)
+    )
+    outlet_q = _apply_filters(outlet_q)
+    by_outlet = [
+        {"outlet": row[0], "score": int(row[1])}
+        for row in session.execute(outlet_q).all()
+        if row[0]
+    ]
+    by_outlet.sort(key=lambda r: r["score"], reverse=True)
+
+    type_q = (
+        select(Change.change_type, func.count(Change.id).label("count"))
+        .join(Article, Article.id == Change.article_id)
+        .group_by(Change.change_type)
+    )
+    type_q = _apply_filters(type_q)
+    by_type = [
+        {"change_type": row[0], "count": int(row[1])}
+        for row in session.execute(type_q).all()
+        if row[0]
+    ]
+    by_type.sort(key=lambda r: r["count"], reverse=True)
+
+    return {
+        "articles": int(article_count),
+        "versions": int(versions),
+        "edits": int(edits),
+        "vibe_shifts": int(vibe_shifts),
+        "by_outlet": by_outlet,
+        "by_type": by_type,
+    }
+
+
 def articles_due_for_rescrape(session: Session, *, now: datetime) -> list[Article]:
     def _aware(dt: datetime) -> datetime:
         return dt if dt.tzinfo is not None else dt.replace(tzinfo=now.tzinfo)

@@ -18,6 +18,7 @@ import {
   formatAge,
   formatTimeOfDay,
   typeLabel,
+  typeColor,
   currentHeadline,
   originalHeadline,
 } from "../lib/receipt";
@@ -29,14 +30,23 @@ function Stat({ label, value, tone }) {
       <div
         style={{
           fontFamily: "var(--serif)",
-          fontStyle: "italic",
+          fontWeight: 600,
           fontSize: 30,
-          color: tone === "red" ? "#e26a5d" : "#f1e3bd",
+          color: tone === "red" ? "#e26a5d" : "#e8e6dd",
         }}
       >
         {value}
       </div>
-      <div style={{ fontSize: 9, letterSpacing: "0.22em", color: "#7a6a4a", marginTop: 2 }}>
+      <div
+        style={{
+          fontFamily: "var(--mono)",
+          fontSize: 9,
+          letterSpacing: "0.22em",
+          color: "#86847b",
+          marginTop: 2,
+          textTransform: "uppercase",
+        }}
+      >
         {label}
       </div>
     </div>
@@ -45,18 +55,19 @@ function Stat({ label, value, tone }) {
 
 function ColumnHeader({ kicker, title, sub }) {
   return (
-    <div style={{ marginBottom: 18, color: "#d8c79a" }}>
-      <div style={{ fontFamily: "var(--mono)", fontSize: 9, letterSpacing: "0.32em", color: "#7a6a4a" }}>
+    <div style={{ marginBottom: 18, color: "#bfbdb4" }}>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 9, letterSpacing: "0.32em", color: "#6d6b65" }}>
         {kicker}
       </div>
       <div
         style={{
           fontFamily: "var(--serif)",
-          fontStyle: "italic",
+          fontWeight: 600,
           fontSize: 32,
-          color: "#f1e3bd",
-          lineHeight: 1,
+          color: "#e8e6dd",
+          lineHeight: 1.05,
           margin: "4px 0",
+          letterSpacing: "-0.012em",
         }}
       >
         {title}
@@ -66,7 +77,7 @@ function ColumnHeader({ kicker, title, sub }) {
           fontFamily: "var(--mono)",
           fontSize: 10,
           letterSpacing: "0.14em",
-          color: "#8a7a55",
+          color: "#86847b",
           textTransform: "uppercase",
         }}
       >
@@ -75,7 +86,7 @@ function ColumnHeader({ kicker, title, sub }) {
       <div
         style={{
           height: 2,
-          background: "repeating-linear-gradient(90deg, #5a4d33 0 4px, transparent 4px 8px)",
+          background: "repeating-linear-gradient(90deg, #4a4944 0 4px, transparent 4px 8px)",
           marginTop: 10,
         }}
       />
@@ -115,17 +126,25 @@ function TapeReceipt({ article, recentChanges, onSelect }) {
         className="serif"
         style={{
           fontSize: 22,
-          lineHeight: 1.15,
+          lineHeight: 1.2,
           color: "var(--ink)",
           marginTop: 4,
-          fontStyle: "italic",
-          letterSpacing: "-0.005em",
+          fontWeight: 600,
+          letterSpacing: "-0.012em",
         }}
       >
         {headline}
       </div>
       {top?.summary && (
-        <div className="typed" style={{ marginTop: 8, lineHeight: 1.4, fontSize: 12 }}>
+        <div
+          style={{
+            fontFamily: "var(--sans)",
+            fontSize: 13,
+            lineHeight: 1.45,
+            color: "var(--ink-soft)",
+            marginTop: 8,
+          }}
+        >
           ↳ {top.summary}
         </div>
       )}
@@ -145,8 +164,13 @@ function TapeReceipt({ article, recentChanges, onSelect }) {
             VIBE SHIFT ·
           </span>
           <span
-            className="serif"
-            style={{ fontStyle: "italic", fontSize: 14, marginLeft: 6, color: "var(--red-deep)" }}
+            style={{
+              fontFamily: "var(--sans)",
+              fontSize: 13,
+              marginLeft: 6,
+              color: "var(--red-deep)",
+              lineHeight: 1.4,
+            }}
           >
             {top.summary}
           </span>
@@ -194,11 +218,11 @@ function SpotlightReceipt({ article, onSelect }) {
         <div className="mono" style={{ fontSize: 9, letterSpacing: "0.24em", color: "var(--ink-faded)", marginBottom: 6 }}>
           HEADLINE — REVISION {article.versions?.length || 1}
         </div>
-        <div className="serif spotlight-h2" style={{ marginBottom: 8, fontStyle: "italic" }}>
+        <div className="serif spotlight-h2" style={{ marginBottom: 8, fontWeight: 600, letterSpacing: "-0.012em" }}>
           <span className="diff-add">{head}</span>
         </div>
         {orig && orig !== head && (
-          <div className="serif" style={{ fontSize: 16, lineHeight: 1.2, color: "var(--ink-faded)", fontStyle: "italic" }}>
+          <div className="serif" style={{ fontSize: 16, lineHeight: 1.3, color: "var(--ink-faded)", fontWeight: 500 }}>
             ↳ <span className="diff-strike">{orig}</span>
           </div>
         )}
@@ -570,7 +594,6 @@ function FilterStrip({ filters, onChange, search, onSearchChange }) {
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="paste any article URL…"
-            className="type"
             style={{
               flex: 1,
               border: "none",
@@ -578,7 +601,8 @@ function FilterStrip({ filters, onChange, search, onSearchChange }) {
               background: "transparent",
               fontSize: 14,
               color: "var(--ink-soft)",
-              fontFamily: "var(--type)",
+              fontFamily: "var(--mono)",
+              fontWeight: 500,
             }}
           />
           <span className="mono" style={{ fontSize: 11, color: "var(--ink-faded)" }}>↩</span>
@@ -591,6 +615,7 @@ function FilterStrip({ filters, onChange, search, onSearchChange }) {
 export default function Dashboard({
   articles,
   recentChanges,
+  stats: serverStats,
   spotlight,
   filters,
   onFiltersChange,
@@ -600,15 +625,41 @@ export default function Dashboard({
   loading,
   error,
 }) {
-  const stats = useMemo(
-    () => dashboardStats(articles, recentChanges),
-    [articles, recentChanges]
-  );
-  const ledger = useMemo(
-    () => outletLedger(articles, recentChanges),
-    [articles, recentChanges]
-  );
-  const breakdown = useMemo(() => typeBreakdown(recentChanges), [recentChanges]);
+  const stats = useMemo(() => {
+    if (serverStats) {
+      return {
+        articles: serverStats.articles || 0,
+        versions: serverStats.versions || 0,
+        edits: serverStats.edits || 0,
+        vibeShifts: serverStats.vibe_shifts || 0,
+      };
+    }
+    return dashboardStats(articles, recentChanges);
+  }, [serverStats, articles, recentChanges]);
+
+  const ledger = useMemo(() => {
+    if (serverStats?.by_outlet?.length) {
+      const max = serverStats.by_outlet[0]?.score || 1;
+      return serverStats.by_outlet.map((row) => ({
+        outlet: row.outlet,
+        label: OUTLET_LABELS[row.outlet] || row.outlet.toUpperCase(),
+        score: row.score,
+        pct: row.score / max,
+      }));
+    }
+    return outletLedger(articles, recentChanges);
+  }, [serverStats, articles, recentChanges]);
+
+  const breakdown = useMemo(() => {
+    if (serverStats?.by_type?.length) {
+      return serverStats.by_type.map((row) => ({
+        label: typeLabel(row.change_type),
+        count: row.count,
+        color: typeColor(row.change_type),
+      }));
+    }
+    return typeBreakdown(recentChanges);
+  }, [serverStats, recentChanges]);
   const trending = useMemo(
     () => rankByRecency(articles, recentChanges, 12),
     [articles, recentChanges]
@@ -641,7 +692,7 @@ export default function Dashboard({
           display: "flex",
           alignItems: "flex-end",
           justifyContent: "space-between",
-          color: "#d8c79a",
+          color: "#bfbdb4",
           marginBottom: 28,
           flexWrap: "wrap",
           gap: 24,
@@ -653,7 +704,7 @@ export default function Dashboard({
               fontFamily: "var(--mono)",
               fontSize: 10,
               letterSpacing: "0.32em",
-              color: "#7a6a4a",
+              color: "#6d6b65",
             }}
           >
             DEPT. OF EDITORIAL VERIFICATION · CIRC. INTERNAL
@@ -662,10 +713,10 @@ export default function Dashboard({
             className="dash-title"
             style={{
               fontFamily: "var(--serif)",
-              fontStyle: "italic",
-              color: "#f1e3bd",
+              fontWeight: 600,
+              color: "#e8e6dd",
               marginTop: 4,
-              letterSpacing: "-0.01em",
+              letterSpacing: "-0.018em",
             }}
           >
             ReadReceipt
@@ -675,7 +726,7 @@ export default function Dashboard({
               fontFamily: "var(--mono)",
               fontSize: 11,
               letterSpacing: "0.18em",
-              color: "#a8946a",
+              color: "#9c9a91",
               marginTop: 6,
             }}
           >
@@ -688,12 +739,12 @@ export default function Dashboard({
               fontFamily: "var(--mono)",
               fontSize: 10,
               letterSpacing: "0.2em",
-              color: "#7a6a4a",
+              color: "#6d6b65",
             }}
           >
             ROLLING LEDGER
           </div>
-          <div style={{ display: "flex", gap: 18, fontFamily: "var(--mono)", color: "#f1e3bd" }}>
+          <div style={{ display: "flex", gap: 18, fontFamily: "var(--mono)", color: "#e8e6dd" }}>
             <Stat label="ARTICLES" value={stats.articles.toLocaleString()} />
             <Stat label="VERSIONS" value={stats.versions.toLocaleString()} />
             <Stat label="EDITS LOGGED" value={stats.edits.toLocaleString()} />
@@ -721,7 +772,7 @@ export default function Dashboard({
       {loading && !articles && (
         <div
           className="mono"
-          style={{ color: "#a8946a", fontSize: 11, letterSpacing: "0.18em", marginBottom: 18 }}
+          style={{ color: "#9c9a91", fontSize: 11, letterSpacing: "0.18em", marginBottom: 18 }}
         >
           POLLING THE TAPE…
         </div>
@@ -833,7 +884,7 @@ export default function Dashboard({
           fontFamily: "var(--mono)",
           fontSize: 10,
           letterSpacing: "0.18em",
-          color: "#5a4d33",
+          color: "#4a4944",
           flexWrap: "wrap",
           gap: 12,
         }}

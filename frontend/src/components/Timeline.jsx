@@ -1,4 +1,5 @@
-import OutletStamp from "./receipt/OutletStamp";
+import { useMemo, useState } from "react";
+import OutletStamp, { OUTLET_LABELS } from "./receipt/OutletStamp";
 import SeverityChip from "./receipt/SeverityChip";
 import LeaderRow from "./receipt/LeaderRow";
 import VolatilityBar from "./receipt/VolatilityBar";
@@ -41,6 +42,126 @@ function HeadlineDiff({ oldText, newText }) {
         );
       })}
     </span>
+  );
+}
+
+// Renders one side of a word-diff: the LEFT column shows same+del segments
+// (preserving the original); the RIGHT column shows same+add (the new).
+function DiffSide({ segments, side }) {
+  return (
+    <span>
+      {segments.map((seg, i) => {
+        const sep = i > 0 && !seg.text.match(/^\s/) ? " " : "";
+        if (seg.kind === "same") return <span key={i}>{sep}{seg.text}</span>;
+        if (seg.kind === "del" && side === "left") {
+          return (
+            <span key={i}>
+              {sep}
+              <span className="diff-strike">{seg.text}</span>
+            </span>
+          );
+        }
+        if (seg.kind === "add" && side === "right") {
+          return (
+            <span key={i}>
+              {sep}
+              <span className="diff-add">{seg.text}</span>
+            </span>
+          );
+        }
+        return null;
+      })}
+    </span>
+  );
+}
+
+function SideBySideDiff({ fromVersion, toVersion }) {
+  const headlineSegs = useMemo(
+    () => wordDiff(fromVersion?.headline || "", toVersion?.headline || ""),
+    [fromVersion, toVersion]
+  );
+  const bodySegs = useMemo(
+    () => wordDiff(fromVersion?.body_text || "", toVersion?.body_text || ""),
+    [fromVersion, toVersion]
+  );
+  return (
+    <div className="sbs-diff">
+      <div className="col">
+        <div className="col-header">
+          ORIGINAL · {formatTimestamp(fromVersion?.scraped_at)}
+        </div>
+        <div className="col-headline">
+          <DiffSide segments={headlineSegs} side="left" />
+        </div>
+        <div className="col-body">
+          <DiffSide segments={bodySegs} side="left" />
+        </div>
+      </div>
+      <div className="sep" />
+      <div className="col">
+        <div className="col-header">
+          CURRENT · {formatTimestamp(toVersion?.scraped_at)}
+        </div>
+        <div className="col-headline">
+          <DiffSide segments={headlineSegs} side="right" />
+        </div>
+        <div className="col-body">
+          <DiffSide segments={bodySegs} side="right" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RevisionRow({ change, fromVersion, toVersion }) {
+  const [expanded, setExpanded] = useState(false);
+  const canExpand = !!(fromVersion && toVersion);
+  return (
+    <div style={{ borderBottom: "1px dotted var(--ink-faded)", padding: "8px 0" }}>
+      <button
+        type="button"
+        className="rev-row"
+        onClick={() => canExpand && setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        disabled={!canExpand}
+        style={{ cursor: canExpand ? "pointer" : "default" }}
+      >
+        <div className="row">
+          <span className="label" style={{ minWidth: 96 }}>
+            {typeLabel(change.change_type)}
+          </span>
+          <span className="leader" />
+          <span className="value muted" style={{ fontSize: 10 }}>
+            {formatTimestamp(change.classified_at)}
+          </span>
+          <span style={{ width: 8 }} />
+          <SeverityChip s={change.severity || 1} />
+          {canExpand && (
+            <span className="glyph" aria-hidden="true">
+              {expanded ? "▾" : "▸"}
+            </span>
+          )}
+        </div>
+        {change.summary && (
+          <div
+            style={{
+              fontFamily: "var(--sans)",
+              fontSize: 13,
+              lineHeight: 1.45,
+              color: "var(--ink-soft)",
+              paddingLeft: 4,
+              paddingTop: 4,
+              maxWidth: "62ch",
+            }}
+          >
+            {change.summary}
+          </div>
+        )}
+      </button>
+      {expanded && canExpand && (
+        <SideBySideDiff fromVersion={fromVersion} toVersion={toVersion} />
+      )}
+    </div>
   );
 }
 
@@ -93,10 +214,17 @@ export default function Timeline({ article, loading, error, onClose }) {
   const orig = originalHeadline(article);
   const versions = article.versions || [];
   const versionCount = versions.length;
+  const versionsById = useMemo(() => {
+    const map = new Map();
+    for (const v of versions) map.set(v.id, v);
+    return map;
+  }, [versions]);
   const top = (article.changes || []).reduce(
     (best, c) => (!best || (c.severity || 0) > (best.severity || 0) ? c : best),
     null
   );
+  const outletLabel =
+    OUTLET_LABELS[article.outlet] || (article.outlet || "").toUpperCase();
 
   const cosmetic = (article.changes || [])
     .filter((c) => (c.severity || 0) <= 2)
@@ -131,9 +259,9 @@ export default function Timeline({ article, loading, error, onClose }) {
           <h1
             className="serif detail-h1"
             style={{
-              fontStyle: "italic",
+              fontWeight: 600,
               margin: "8px 0 14px",
-              letterSpacing: "-0.012em",
+              letterSpacing: "-0.018em",
             }}
           >
             <span className="diff-add" style={{ borderBottomWidth: 0, background: "none" }}>
@@ -144,11 +272,29 @@ export default function Timeline({ article, loading, error, onClose }) {
           {orig && orig !== head && (
             <div
               className="serif"
-              style={{ fontStyle: "italic", fontSize: 17, lineHeight: 1.25, color: "var(--ink-faded)" }}
+              style={{ fontWeight: 500, fontSize: 17, lineHeight: 1.3, color: "var(--ink-faded)" }}
             >
               ↳ originally:&nbsp;<span className="diff-strike">{orig}</span>
             </div>
           )}
+
+          <div
+            style={{
+              marginTop: 14,
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
+          >
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noreferrer"
+              className="action-stamp"
+            >
+              READ ARTICLE AT {outletLabel}
+              <span className="arrow" aria-hidden="true">↗</span>
+            </a>
+          </div>
 
           <div className="detail-meta-grid" style={{ marginTop: 18 }}>
             <LeaderRow label="Tracked since" value={trackedSinceLabel(article)} />
@@ -195,9 +341,9 @@ export default function Timeline({ article, loading, error, onClose }) {
                     className="serif"
                     style={{
                       fontSize: 16,
-                      lineHeight: 1.25,
+                      lineHeight: 1.3,
                       marginTop: 6,
-                      fontStyle: "italic",
+                      fontWeight: 500,
                       color: "var(--ink-faded)",
                     }}
                   >
@@ -213,7 +359,7 @@ export default function Timeline({ article, loading, error, onClose }) {
                   </div>
                   <div
                     className="serif"
-                    style={{ fontSize: 16, lineHeight: 1.25, marginTop: 6, fontStyle: "italic" }}
+                    style={{ fontSize: 16, lineHeight: 1.3, marginTop: 6, fontWeight: 600 }}
                   >
                     <HeadlineDiff oldText={orig} newText={head} />
                   </div>
@@ -239,39 +385,12 @@ export default function Timeline({ article, loading, error, onClose }) {
           ) : (
             <div>
               {(article.changes || []).map((c) => (
-                <div
+                <RevisionRow
                   key={c.id}
-                  style={{
-                    borderBottom: "1px dotted var(--ink-faded)",
-                    padding: "8px 0",
-                  }}
-                >
-                  <div className="row">
-                    <span className="label" style={{ minWidth: 96 }}>{typeLabel(c.change_type)}</span>
-                    <span className="leader" />
-                    <span className="value muted" style={{ fontSize: 10 }}>
-                      {formatTimestamp(c.classified_at)}
-                    </span>
-                    <span style={{ width: 8 }} />
-                    <SeverityChip s={c.severity || 1} />
-                  </div>
-                  {c.summary && (
-                    <div
-                      className="serif"
-                      style={{
-                        fontStyle: "italic",
-                        fontSize: 14,
-                        color: "var(--ink-soft)",
-                        paddingLeft: 4,
-                        paddingTop: 4,
-                        maxWidth: "62ch",
-                        lineHeight: 1.32,
-                      }}
-                    >
-                      {c.summary}
-                    </div>
-                  )}
-                </div>
+                  change={c}
+                  fromVersion={versionsById.get(c.from_version_id)}
+                  toVersion={versionsById.get(c.to_version_id)}
+                />
               ))}
             </div>
           )}
@@ -352,7 +471,7 @@ function TopBar({ onClose }) {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "baseline",
-        color: "#a8946a",
+        color: "#9c9a91",
         marginBottom: 24,
         flexWrap: "wrap",
         gap: 12,
@@ -361,13 +480,13 @@ function TopBar({ onClose }) {
       <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
         <span
           className="serif"
-          style={{ fontStyle: "italic", fontSize: 26, color: "#f1e3bd" }}
+          style={{ fontWeight: 600, fontSize: 26, color: "#e8e6dd", letterSpacing: "-0.012em" }}
         >
           ReadReceipt
         </span>
         <span
           className="mono"
-          style={{ fontSize: 10, letterSpacing: "0.22em", color: "#7a6a4a" }}
+          style={{ fontSize: 10, letterSpacing: "0.22em", color: "#6d6b65" }}
         >
           / ARTICLE&nbsp;DETAIL
         </span>
@@ -378,7 +497,7 @@ function TopBar({ onClose }) {
         style={{
           fontSize: 10,
           letterSpacing: "0.22em",
-          color: "#7a6a4a",
+          color: "#6d6b65",
           background: "transparent",
           border: "none",
           cursor: "pointer",

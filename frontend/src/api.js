@@ -21,12 +21,26 @@ export async function fetchArticle(id) {
   return r.json();
 }
 
-export async function fetchRecentChanges({ minSeverity = 2, outlet, since } = {}) {
+export async function fetchRecentChanges({ minSeverity = 2, outlet, since, limit } = {}) {
   const qs = new URLSearchParams();
   if (minSeverity != null) qs.set("min_severity", minSeverity);
   if (outlet) qs.set("outlet", outlet);
   if (since) qs.set("since", since);
+  if (limit != null) qs.set("limit", limit);
   const r = await fetch(`${BASE}/changes/recent?${qs}`);
   if (!r.ok) throw new Error(`changes: ${r.status}`);
+  return r.json();
+}
+
+export async function fetchStats({ minSeverity = 0, outlet, since, changeTypes } = {}) {
+  const qs = new URLSearchParams();
+  if (minSeverity != null) qs.set("min_severity", minSeverity);
+  if (outlet) qs.set("outlet", outlet);
+  if (since) qs.set("since", since);
+  if (changeTypes && changeTypes.length) {
+    for (const ct of changeTypes) qs.append("change_type", ct);
+  }
+  const r = await fetch(`${BASE}/stats?${qs}`);
+  if (!r.ok) throw new Error(`stats: ${r.status}`);
   return r.json();
 }

@@ -39,44 +39,25 @@ CHANGE_TYPES = {
 
 PROMPT_VERSION = "v1"
 
-EVAL_PROMPT = """You are an independent evaluator of news article edits.
+EVAL_PROMPT = """You are an independent evaluator of news article edits. You have tools available — use them, do not describe them.
 
-Your job is to form your own classification of how significant a change is, separate from any prior classification.
+Evaluate change_id={change_id}.
 
-You are evaluating change_id={change_id}.
-
-Steps:
-1. Call get_change_detail with change_id={change_id} to read the change. The response will include a "haiku_classification" field showing another model's prior verdict. IGNORE that field when forming your own judgment. Form your verdict from the before/after content alone.
-2. Decide on:
-   - severity (1-5, see scale below)
-   - change_type (must be exactly one of: {change_types})
-   - reasoning (2-4 sentences explaining your judgment)
-3. Call submit_mcp_evaluation with your verdict. Use:
-   - evaluator="{evaluator}"
-   - prompt_version="{prompt_version}"
-   - change_id={change_id}
-   - your severity, change_type, and reasoning
+Process:
+- Read the change with get_change_detail.
+- Form your own judgment based on the before/after content. Ignore any prior haiku_classification.
+- Submit your verdict with submit_mcp_evaluation, using evaluator="{evaluator}" and prompt_version="{prompt_version}".
 
 Severity scale:
-1 - Trivial. Typo, formatting, no semantic difference.
-2 - Minor. Small clarification, no factual change.
-3 - Moderate. Wording change that shifts emphasis or tone.
-4 - Significant. Factual correction, source change, removed/added context.
-5 - Major. Story-altering revision (changed conclusion, removed allegation, swapped subject of claim).
+1 - Trivial (typo, formatting)
+2 - Minor (small clarification)
+3 - Moderate (wording shifts emphasis)
+4 - Significant (factual correction, source change)
+5 - Major (story-altering revision)
 
-Change type definitions:
-- headline_change: edits to the article title
-- fact_change: a factual claim was modified
-- quote_change: a direct quotation was added, removed, or altered
-- source_removed: a named source or attribution was removed
-- addition: meaningful new content added
-- deletion: meaningful content removed
-- temporal_update: time/date references updated as the story develops
-- routine_update: minor maintenance edit
-- other: doesn't fit any category above
+Change types: {change_types}
 
-Be skeptical and independent. Do not anchor to any prior classifier's verdict. Different evaluators legitimately disagree on edge cases — that disagreement is the value of independent evaluation."""
-
+Do not write code blocks. Do not show example tool outputs. Do not narrate your reasoning step by step. Use the tools directly and submit one evaluation."""
 
 async def run_batch():
     # find unevaluated changes
@@ -115,7 +96,7 @@ async def run_batch():
                 #calling gemini for each change
                 chat = client.aio.chats.create(
                 model=MODEL,
-                config=types.GenerateContentConfig(tools=gemini_tools),
+                config=types.GenerateContentConfig(tools=gemini_tools, temperature=0.7),
                 )
                 response = await chat.send_message(prompt)
                 while response.function_calls:

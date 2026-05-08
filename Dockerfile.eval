@@ -14,4 +14,4 @@ COPY readreceipt/ ./readreceipt/
 ENV PYTHONUNBUFFERED=1
 
 # When the container starts, run the eval pipeline once and exit
-CMD ["python", "-m", "readreceipt.agents.eval_pipeline"]
+CMD ["python", "-m", "readreceipt.agents.eval"]

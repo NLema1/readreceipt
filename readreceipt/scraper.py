@@ -208,6 +208,20 @@ def parse_article(html: str) -> Optional[ParsedArticle]:
     )
 
 
+def _fetchable_url(url: str) -> str:
+    """Per-outlet URL rewrites for sites that block direct article fetches.
+
+    The Hill's article URLs are 403'd by their bot wall, but their AMP
+    variants render cleanly. We keep the canonical URL in the DB so the
+    public link is still the normal article — only the scraper hits AMP.
+    """
+    if "thehill.com" in url:
+        clean = url.rstrip("/")
+        if not clean.endswith("/amp"):
+            return clean + "/amp/"
+    return url
+
+
 def fetch_url(url: str, *, timeout: float = 15.0) -> Optional[str]:
     headers = {
         "User-Agent": (
@@ -216,9 +230,14 @@ def fetch_url(url: str, *, timeout: float = 15.0) -> Optional[str]:
             "Chrome/123.0.0.0 Safari/537.36"
         )
     }
+    fetch_url_ = _fetchable_url(url)
     try:
-        resp = httpx.get(url, headers=headers, timeout=timeout, follow_redirects=True)
+        resp = httpx.get(fetch_url_, headers=headers, timeout=timeout, follow_redirects=True)
         resp.raise_for_status()
         return resp.text
-    except httpx.HTTPError:
+    except httpx.HTTPStatusError as exc:
+        log.warning("fetch %s failed: HTTP %s", fetch_url_, exc.response.status_code)
+        return None
+    except httpx.HTTPError as exc:
+        log.warning("fetch %s failed: %s", fetch_url_, exc)
         return None

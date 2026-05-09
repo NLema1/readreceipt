@@ -104,6 +104,11 @@ _TRUNCATE_MARKERS = (
     "YOU MAY ALSO LIKE",
     "RECOMMENDED FOR YOU",
     "SPONSORED CONTENT",
+    # NY Post footer block — first line is always "Post News: Facebook, ...",
+    # followed by California-edition signups, app/newsletter CTAs, etc.
+    "POST NEWS",
+    # WaPo / generic — sometimes appears at the foot
+    "MOST READ",
 )
 
 # Lines matching these patterns are CMS-injected boilerplate (newsletter
@@ -115,6 +120,18 @@ _BOILERPLATE_LINE_PATTERNS = (
     re.compile(r"newsletter\s+sent\s+every\s+(weekday|day|week)", re.IGNORECASE),
     re.compile(r"download\s+the\s+(?:\w+\s+){1,3}app\b", re.IGNORECASE),
     re.compile(r"follow\s+us\s+on\s+(facebook|twitter|instagram|tiktok)", re.IGNORECASE),
+    # Generic CTA lines that show up under outlet footers:
+    #   "California Post Newsletters: Sign up here!"  /  "Page Six App: Download here!"
+    re.compile(r":\s*sign\s+up\s+here\b", re.IGNORECASE),
+    re.compile(r":\s*download\s+here\b", re.IGNORECASE),
+    # Social-platform list line: "<prefix>: Facebook, Instagram, TikTok, X, ..."
+    # — three+ platform names on one line is a follow-us strip, not body text.
+    re.compile(
+        r"^[^:]{0,40}(?::|\s)\s*"
+        r"(?:facebook|instagram|tiktok|youtube|whatsapp|linkedin|twitter|x)"
+        r"(?:[,\s]+(?:facebook|instagram|tiktok|youtube|whatsapp|linkedin|twitter|x)){2,}",
+        re.IGNORECASE,
+    ),
 )
 
 
@@ -175,6 +192,29 @@ def filter_chrome_lines(text: str) -> str:
     return "\n".join(line for line in text.split("\n") if not _is_chrome_line(line))
 
 
+# Lines that look like outlet section/footer labels (e.g. "California Post Opinion",
+# "Page Six Hollywood") that trafilatura sometimes captures as trailing body
+# content. We only strip these from the END of the body so we don't accidentally
+# remove legitimate mid-article paragraphs that happen to start with these words.
+_TRAILING_CHROME_PATTERNS = (
+    re.compile(r"^california\s+post\b", re.IGNORECASE),
+    re.compile(r"^page\s+six\b", re.IGNORECASE),
+    re.compile(r"^home\s+delivery\b", re.IGNORECASE),
+    re.compile(r"^post\s+news\b", re.IGNORECASE),
+)
+
+
+def trim_trailing_chrome(text: str) -> str:
+    lines = text.split("\n")
+    while lines:
+        last = lines[-1].strip()
+        if not last or any(p.match(last) for p in _TRAILING_CHROME_PATTERNS):
+            lines.pop()
+        else:
+            break
+    return "\n".join(lines)
+
+
 def extract_headline(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
     og = soup.find("meta", property="og:title")
@@ -192,6 +232,7 @@ def parse_article(html: str) -> Optional[ParsedArticle]:
         return None
     body = trim_after_markers(body.strip())
     body = filter_chrome_lines(body).strip()
+    body = trim_trailing_chrome(body).strip()
     if not body:
         return None
     marker = detect_interstitial(body)

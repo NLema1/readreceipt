@@ -279,7 +279,7 @@ function FeedRow({ article, top, latestIso, vol, onOpen, highlight }) {
           RR-{article.id}
         </Mono>
       </div>
-      <div style={{ display: "flex", alignItems: "center", height: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 24 }}>
         <OutletMark outlet={article.outlet} height={22} withName={false} />
       </div>
       <SevPill s={article.max_severity || 0} />
@@ -583,7 +583,13 @@ export default function Feed() {
           }}
         >
           {["Time", "Outlet", "Sev", "Headline · diff", "Type", "Edits"].map((h, i) => (
-            <Kicker key={h} style={{ fontSize: 9, textAlign: i === 5 ? "right" : "left" }}>
+            <Kicker
+              key={h}
+              style={{
+                fontSize: 9,
+                textAlign: i === 5 ? "right" : i === 1 ? "center" : "left",
+              }}
+            >
               {h}
             </Kicker>
           ))}

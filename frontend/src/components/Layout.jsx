@@ -105,7 +105,7 @@ function MobileTabbar() {
   const nav = useNavigate();
   return (
     <div
-      className="md:hidden"
+      className="md:hidden grid grid-cols-4"
       style={{
         position: "fixed",
         bottom: 0,
@@ -114,8 +114,6 @@ function MobileTabbar() {
         height: 64,
         borderTop: `1px solid ${RR.hair}`,
         background: RR.paper,
-        display: "grid",
-        gridTemplateColumns: "repeat(4,1fr)",
         zIndex: 20,
       }}
     >

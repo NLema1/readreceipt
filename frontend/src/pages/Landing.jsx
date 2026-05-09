@@ -503,7 +503,7 @@ export default function Landing() {
               <Mono style={{ color: RR.soft, fontSize: 11, letterSpacing: "0.1em" }}>
                 {ageLabel(a.first_seen)}
               </Mono>
-              <div style={{ display: "flex", alignItems: "center", height: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 24 }}>
                 <OutletMark outlet={a.outlet} height={20} withName={false} />
               </div>
               <div>

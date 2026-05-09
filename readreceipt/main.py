@@ -4,6 +4,7 @@ import os
 from anthropic import Anthropic
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from readreceipt import config
 from readreceipt.api import build_app
@@ -69,6 +70,19 @@ def _on_shutdown():
         _scheduler.shutdown(wait=False)
 
 
+class SPAStaticFiles(StaticFiles):
+    """StaticFiles that falls back to index.html for unknown paths so the
+    React Router can handle direct URL hits (/feed, /article/123, etc.)."""
+
+    async def get_response(self, path, scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == 404:
+                return await super().get_response("index.html", scope)
+            raise
+
+
 _FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
 if os.path.isdir(_FRONTEND_DIST):
-    app.mount("/", StaticFiles(directory=_FRONTEND_DIST, html=True), name="frontend")
+    app.mount("/", SPAStaticFiles(directory=_FRONTEND_DIST, html=True), name="frontend")

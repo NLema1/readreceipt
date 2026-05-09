@@ -131,43 +131,48 @@ export default function Landing() {
   const sigToday = stats24?.vibe_shifts ?? 0;
   const outletsCount = OUTLET_KEYS.length;
 
-  // -------- Spotlight diff (prefer real version pair if available) --------
+  // -------- Spotlight diff: only show a headline diff when there's a real
+  //          headline_change to render. Otherwise show the headline alone and
+  //          let the summary card describe the body change.
   function spotlightDiff() {
     if (!spotlight) return null;
     const versions = spotlight.versions || [];
-    let oldText = "";
-    let newText = spotlight.headline || "";
-    if (versions.length >= 2) {
-      const last = versions[versions.length - 1];
-      // find the most recent prior headline that differs
-      for (let i = versions.length - 2; i >= 0; i--) {
-        if ((versions[i].headline || "") !== (last.headline || "")) {
-          oldText = versions[i].headline || "";
-          newText = last.headline || "";
-          break;
-        }
+    const changes = spotlight.changes || [];
+    const versionMap = new Map();
+    for (const v of versions) versionMap.set(v.id, v.headline || "");
+
+    // Look for the most recent headline_change with a real before/after.
+    let headlinePair = null;
+    for (const c of changes) {
+      if (c.change_type !== "headline_change") continue;
+      const oldH = versionMap.get(c.from_version_id) || "";
+      const newH = versionMap.get(c.to_version_id) || "";
+      if (oldH && newH && oldH !== newH) {
+        headlinePair = { change: c, oldText: oldH, newText: newH };
+        break;
       }
-      if (!oldText) {
-        oldText = versions[0].headline || "";
-        newText = last.headline || newText;
-      }
-    } else if (versions.length === 1) {
-      oldText = versions[0].headline || "";
-      newText = spotlight.headline || oldText;
-    } else {
-      oldText = spotlight.headline || "";
     }
-    const topChange = (spotlight.changes || [])[0];
+
+    // Top change for the summary block: highest severity overall.
+    const topChange = changes.length
+      ? [...changes].sort((a, b) => (b.severity || 0) - (a.severity || 0))[0]
+      : null;
+    const featuredChange = headlinePair?.change || topChange;
+    const currentHeadline =
+      versions[versions.length - 1]?.headline || spotlight.headline || "";
+
     return {
-      oldText,
-      newText,
-      topChange,
+      hasHeadlineDiff: !!headlinePair,
+      oldText: headlinePair?.oldText || "",
+      newText: headlinePair?.newText || currentHeadline,
+      currentHeadline,
+      featuredChange,
       versionCount: versions.length,
-      changeCount: (spotlight.changes || []).length,
-      maxSev: (spotlight.changes || []).reduce((m, c) => Math.max(m, c.severity || 0), 0) || 4,
-      volatility: (spotlight.changes || []).reduce((s, c) => s + (c.severity || 0), 0),
-      classifiedAtTime: topChange?.classified_at
-        ? new Date(topChange.classified_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
+      changeCount: changes.length,
+      maxSev: changes.reduce((m, c) => Math.max(m, c.severity || 0), 0) || 4,
+      volatility: changes.reduce((s, c) => s + (c.severity || 0), 0),
+      classifiedAtTime: featuredChange?.classified_at
+        ? new Date(featuredChange.classified_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
         : null,
     };
   }
@@ -283,21 +288,34 @@ export default function Landing() {
             </div>
             <Hair />
             <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 10px" }}>
-              <SevPill s={sd?.maxSev || 4} />
-              <TypeTag type={sd?.topChange?.change_type || "headline_change"} />
+              <SevPill s={sd?.featuredChange?.severity || sd?.maxSev || 4} />
+              <TypeTag type={sd?.featuredChange?.change_type || "headline_change"} />
               <span style={{ flex: 1 }} />
               <Mono style={{ color: RR.soft, fontSize: 10 }}>
-                {sd?.versionCount ? `v${sd.versionCount} of ${sd.versionCount}` : ""}
+                {sd?.versionCount ? `${sd.versionCount} versions` : ""}
               </Mono>
             </div>
             {sd ? (
-              <Diff oldText={sd.oldText} newText={sd.newText} />
+              sd.hasHeadlineDiff ? (
+                <Diff oldText={sd.oldText} newText={sd.newText} />
+              ) : (
+                <div
+                  style={{
+                    fontFamily: FONT.serif,
+                    fontSize: 22,
+                    lineHeight: 1.25,
+                    color: RR.ink,
+                  }}
+                >
+                  {sd.currentHeadline}
+                </div>
+              )
             ) : (
               <div style={{ fontFamily: FONT.serif, fontSize: 18, color: RR.soft, lineHeight: 1.3 }}>
                 Loading the latest receipt…
               </div>
             )}
-            {sd?.topChange?.summary && (
+            {sd?.featuredChange?.summary && (
               <div
                 style={{
                   marginTop: 16,
@@ -311,7 +329,7 @@ export default function Landing() {
                   borderLeft: `2px solid ${RR.red}`,
                 }}
               >
-                "{sd.topChange.summary}"
+                "{sd.featuredChange.summary}"
                 <div
                   style={{
                     fontFamily: FONT.mono,
@@ -656,13 +674,36 @@ export default function Landing() {
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <OutletMark outlet={spotlight?.outlet || "guardian"} height={14} />
-            <SevPill s={sd?.maxSev || 4} />
+            <SevPill s={sd?.featuredChange?.severity || sd?.maxSev || 4} />
           </div>
           <Hair style={{ margin: "10px 0" }} dashed />
           {sd ? (
-            <Diff oldText={sd.oldText} newText={sd.newText} />
+            sd.hasHeadlineDiff ? (
+              <Diff oldText={sd.oldText} newText={sd.newText} size={16} />
+            ) : (
+              <div style={{ fontFamily: FONT.serif, fontSize: 18, lineHeight: 1.25, color: RR.ink }}>
+                {sd.currentHeadline}
+              </div>
+            )
           ) : (
             <div style={{ fontFamily: FONT.serif, fontSize: 16, color: RR.soft }}>Loading…</div>
+          )}
+          {sd && !sd.hasHeadlineDiff && sd.featuredChange?.summary && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: "10px 12px",
+                background: RR.paper2,
+                fontFamily: FONT.serif,
+                fontStyle: "italic",
+                fontSize: 13,
+                lineHeight: 1.4,
+                color: RR.ink2,
+                borderLeft: `2px solid ${RR.red}`,
+              }}
+            >
+              "{sd.featuredChange.summary}"
+            </div>
           )}
           <div
             style={{
@@ -677,7 +718,7 @@ export default function Landing() {
           >
             <span>{sd?.classifiedAtTime || ""}</span>
             <span>·</span>
-            <TypeTag type={sd?.topChange?.change_type || "headline_change"} />
+            <TypeTag type={sd?.featuredChange?.change_type || "headline_change"} />
             <span>·</span>
             <span>{sd?.versionCount ? `v${sd.versionCount}` : ""}</span>
           </div>

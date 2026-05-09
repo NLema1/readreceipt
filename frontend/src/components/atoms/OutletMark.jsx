@@ -10,6 +10,8 @@ export default function OutletMark({
 }) {
   const o = OUTLETS[outlet];
   if (!o) return null;
+  const scale = o.scale ?? 1;
+  const effectiveHeight = Math.round(height * scale);
   const baseImgStyle = {
     objectFit: "contain",
     filter: "grayscale(1) contrast(1.05)",
@@ -21,8 +23,8 @@ export default function OutletMark({
       alt={o.label}
       style={
         logoBox
-          ? { ...baseImgStyle, maxHeight: height, maxWidth: logoBox, width: "auto", height: "auto" }
-          : { ...baseImgStyle, height, width: "auto" }
+          ? { ...baseImgStyle, maxHeight: effectiveHeight, maxWidth: logoBox, width: "auto", height: "auto" }
+          : { ...baseImgStyle, height: effectiveHeight, width: "auto" }
       }
     />
   );

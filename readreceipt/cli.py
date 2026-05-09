@@ -15,7 +15,7 @@ from readreceipt.storage import (
     create_engine_and_tables,
     session_scope,
 )
-from readreceipt.url_utils import is_live_blog_url
+from readreceipt.url_utils import is_live_blog_url, should_skip_url
 
 
 def _fetch_feed_for_dry_run(url: str) -> list[str]:
@@ -37,12 +37,20 @@ def _do_dry_run(feeds: list[FeedSpec]) -> None:
 
 
 def _do_purge_live_blogs(engine, *, dry_run: bool) -> None:
+    _purge_by_predicate(engine, is_live_blog_url, label="live-blog", dry_run=dry_run)
+
+
+def _do_purge_non_articles(engine, *, dry_run: bool) -> None:
+    _purge_by_predicate(engine, should_skip_url, label="non-article", dry_run=dry_run)
+
+
+def _purge_by_predicate(engine, predicate, *, label: str, dry_run: bool) -> None:
     with session_scope(engine) as s:
         all_articles = s.execute(select(Article)).scalars().all()
-        targets = [a for a in all_articles if is_live_blog_url(a.url)]
+        targets = [a for a in all_articles if predicate(a.url)]
         target_ids = [a.id for a in targets]
 
-        print(f"Found {len(targets)} live-blog article(s):")
+        print(f"Found {len(targets)} {label} article(s):")
         for a in targets:
             print(f"  - [{a.outlet}] {a.url}")
 
@@ -203,6 +211,11 @@ def main(argv: Optional[list[str]] = None) -> None:
         help="delete tracked articles whose URL matches /live/, /live-updates/, or /live-blog/",
     )
     parser.add_argument(
+        "--purge-non-articles",
+        action="store_true",
+        help="delete tracked articles that aren't editorial — live blogs, BBC Sounds, podcasts, audio/video, weather, programme guides",
+    )
+    parser.add_argument(
         "--reset-outlet-history",
         action="append",
         default=None,
@@ -231,6 +244,12 @@ def main(argv: Optional[list[str]] = None) -> None:
         cfg = config.load()
         engine = create_engine_and_tables(cfg.database_url)
         _do_purge_live_blogs(engine, dry_run=args.dry_run)
+        return
+
+    if args.purge_non_articles:
+        cfg = config.load()
+        engine = create_engine_and_tables(cfg.database_url)
+        _do_purge_non_articles(engine, dry_run=args.dry_run)
         return
 
     if args.reset_outlet_history:

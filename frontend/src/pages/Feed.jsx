@@ -279,7 +279,7 @@ function FeedRow({ article, top, latestIso, vol, onOpen, highlight }) {
           RR-{article.id}
         </Mono>
       </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 36 }}>
         <OutletMark outlet={article.outlet} height={22} withName={false} />
       </div>
       <SevPill s={article.max_severity || 0} />

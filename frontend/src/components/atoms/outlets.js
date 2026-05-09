@@ -10,18 +10,22 @@ import propublica from "../../assets/logos/propublica.svg";
 import sky from "../../assets/logos/sky.svg";
 import thehill from "../../assets/logos/thehill.svg";
 
+// `scale` rebalances visual weight: square brand marks (NBC peacock,
+// The Hill stacked text, BBC blocks) get a > 1 multiplier so they read
+// as substantial next to wide wordmarks like NY POST or PROPUBLICA,
+// which get a < 1 multiplier so they don't dominate every row.
 export const OUTLETS = {
-  guardian:   { label: 'The Guardian',  short: 'Guardian',   logo: guardian },
-  bbc:        { label: 'BBC News',      short: 'BBC',        logo: bbc },
-  npr:        { label: 'NPR',           short: 'NPR',        logo: npr },
-  aljazeera:  { label: 'Al Jazeera',    short: 'Al Jazeera', logo: aljazeera },
-  propublica: { label: 'ProPublica',    short: 'ProPublica', logo: propublica },
-  nbc:        { label: 'NBC News',      short: 'NBC',        logo: nbc },
-  cbs:        { label: 'CBS News',      short: 'CBS',        logo: cbs },
-  thehill:    { label: 'The Hill',      short: 'The Hill',   logo: thehill },
-  sky:        { label: 'Sky News',      short: 'Sky',        logo: sky },
-  fox:        { label: 'Fox News',      short: 'Fox',        logo: fox },
-  nypost:     { label: 'New York Post', short: 'NY Post',    logo: nypost },
+  guardian:   { label: 'The Guardian',  short: 'Guardian',   logo: guardian,   scale: 1.0  },
+  bbc:        { label: 'BBC News',      short: 'BBC',        logo: bbc,        scale: 1.05 },
+  npr:        { label: 'NPR',           short: 'NPR',        logo: npr,        scale: 1.05 },
+  aljazeera:  { label: 'Al Jazeera',    short: 'Al Jazeera', logo: aljazeera,  scale: 1.15 },
+  propublica: { label: 'ProPublica',    short: 'ProPublica', logo: propublica, scale: 0.85 },
+  nbc:        { label: 'NBC News',      short: 'NBC',        logo: nbc,        scale: 1.4  },
+  cbs:        { label: 'CBS News',      short: 'CBS',        logo: cbs,        scale: 1.25 },
+  thehill:    { label: 'The Hill',      short: 'The Hill',   logo: thehill,    scale: 1.5  },
+  sky:        { label: 'Sky News',      short: 'Sky',        logo: sky,        scale: 0.95 },
+  fox:        { label: 'Fox News',      short: 'Fox',        logo: fox,        scale: 1.0  },
+  nypost:     { label: 'New York Post', short: 'NY Post',    logo: nypost,     scale: 0.85 },
 };
 
 export const OUTLET_KEYS = Object.keys(OUTLETS);

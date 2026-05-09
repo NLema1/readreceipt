@@ -423,7 +423,7 @@ export default function Stats() {
                   <Mono style={{ fontSize: 11, color: RR.mute, letterSpacing: "0.16em" }}>#{i + 1}</Mono>
                   <SevDot s={i < 2 ? 5 : i < 4 ? 4 : 3} size={6} />
                 </div>
-                <div style={{ marginTop: 10, height: 26, display: "flex", alignItems: "center" }}>
+                <div style={{ marginTop: 10, minHeight: 32, display: "flex", alignItems: "center" }}>
                   <OutletMark outlet={r.outlet} height={20} withName={false} />
                 </div>
                 <div

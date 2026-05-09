@@ -13,6 +13,7 @@ export default function OutletMark({
   const baseImgStyle = {
     objectFit: "contain",
     filter: "grayscale(1) contrast(1.05)",
+    display: "block",
   };
   const img = (
     <img
@@ -21,7 +22,7 @@ export default function OutletMark({
       style={
         logoBox
           ? { ...baseImgStyle, maxHeight: height, maxWidth: logoBox, width: "auto", height: "auto" }
-          : { ...baseImgStyle, height, width: "auto", maxWidth: 80 }
+          : { ...baseImgStyle, height, width: "auto" }
       }
     />
   );

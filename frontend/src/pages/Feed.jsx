@@ -263,7 +263,7 @@ function FeedRow({ article, top, latestIso, vol, onOpen, highlight }) {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "88px 130px 80px 1fr 110px 70px",
+        gridTemplateColumns: "88px 170px 80px 1fr 110px 70px",
         gap: 20,
         padding: "20px 0",
         alignItems: "flex-start",
@@ -279,7 +279,9 @@ function FeedRow({ article, top, latestIso, vol, onOpen, highlight }) {
           RR-{article.id}
         </Mono>
       </div>
-      <OutletMark outlet={article.outlet} height={18} withName={false} logoBox={80} />
+      <div style={{ display: "flex", alignItems: "center", height: 24 }}>
+        <OutletMark outlet={article.outlet} height={22} withName={false} />
+      </div>
       <SevPill s={article.max_severity || 0} />
       <div>
         <button
@@ -359,7 +361,7 @@ function FeedCard({ article, top, latestIso, onOpen }) {
       onClick={onOpen}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <OutletMark outlet={article.outlet} height={14} withName={false} />
+        <OutletMark outlet={article.outlet} height={20} withName={false} />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Mono style={{ color: RR.soft, fontSize: 10 }}>{ageLabel(latestIso || article.first_seen)}</Mono>
           <SevPill s={article.max_severity || 0} />
@@ -574,7 +576,7 @@ export default function Feed() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "88px 130px 80px 1fr 110px 70px",
+            gridTemplateColumns: "88px 170px 80px 1fr 110px 70px",
             gap: 20,
             padding: "14px 0",
             borderBottom: `1px solid ${RR.ink}`,

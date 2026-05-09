@@ -493,7 +493,7 @@ export default function Landing() {
                 cursor: "pointer",
                 textAlign: "left",
                 display: "grid",
-                gridTemplateColumns: "110px 110px 1fr 90px 60px",
+                gridTemplateColumns: "110px 160px 1fr 90px 60px",
                 gap: 24,
                 alignItems: "center",
                 padding: "18px 0",
@@ -503,7 +503,9 @@ export default function Landing() {
               <Mono style={{ color: RR.soft, fontSize: 11, letterSpacing: "0.1em" }}>
                 {ageLabel(a.first_seen)}
               </Mono>
-              <OutletMark outlet={a.outlet} height={16} withName={false} logoBox={70} />
+              <div style={{ display: "flex", alignItems: "center", height: 24 }}>
+                <OutletMark outlet={a.outlet} height={20} withName={false} />
+              </div>
               <div>
                 <div style={{ fontFamily: FONT.serif, fontSize: 19, lineHeight: 1.25, color: RR.ink }}>
                   {a.headline}

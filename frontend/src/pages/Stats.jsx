@@ -227,12 +227,24 @@ export default function Stats() {
                 key={r.outlet}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "140px 1fr 60px",
+                  gridTemplateColumns: "120px 1fr 60px",
                   gap: 14,
                   alignItems: "center",
                 }}
               >
-                <OutletMark outlet={r.outlet} height={12} logoBox={44} />
+                <div
+                  style={{
+                    fontFamily: FONT.sans,
+                    fontSize: 13,
+                    color: RR.ink,
+                    fontWeight: 500,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {OUTLETS[r.outlet].label}
+                </div>
                 <div style={{ position: "relative", height: 18, background: RR.paper2 }}>
                   <div
                     style={{
@@ -411,8 +423,8 @@ export default function Stats() {
                   <Mono style={{ fontSize: 11, color: RR.mute, letterSpacing: "0.16em" }}>#{i + 1}</Mono>
                   <SevDot s={i < 2 ? 5 : i < 4 ? 4 : 3} size={6} />
                 </div>
-                <div style={{ marginTop: 8 }}>
-                  <OutletMark outlet={r.outlet} height={13} />
+                <div style={{ marginTop: 10, height: 26, display: "flex", alignItems: "center" }}>
+                  <OutletMark outlet={r.outlet} height={20} withName={false} />
                 </div>
                 <div
                   style={{

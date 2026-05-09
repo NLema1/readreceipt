@@ -54,9 +54,57 @@ def _make_scrape_one():
     return _scrape_one
 
 
+def _maybe_run_boot_cleanup():
+    """Run a one-shot maintenance command at boot if RUN_CLEANUP_ON_BOOT is set.
+
+    Lets you trigger CLI cleanups from a Railway env var instead of needing
+    the Railway CLI + a public DB URL on a laptop. Set the env var, redeploy,
+    watch the logs, then unset and redeploy again.
+
+    Supported values:
+      - "purge_non_articles"           — drop video/audio/podcast/weather URLs
+      - "purge_live_blogs"             — drop /live/ /live-updates/ /live-blog/
+      - "purge_outlet:sky"             — drop one outlet (comma-separated for many)
+      - "reset_outlet_history:nypost"  — wipe versions+changes for an outlet,
+                                         keeping article rows so the next poll
+                                         re-snapshots them with current scraper
+    """
+    raw = os.environ.get("RUN_CLEANUP_ON_BOOT", "").strip()
+    if not raw:
+        return
+    log.warning("RUN_CLEANUP_ON_BOOT=%r — running cleanup before serving", raw)
+    log.warning("⚠️  REMEMBER to unset RUN_CLEANUP_ON_BOOT after this deploy "
+                "or it will run again on every restart.")
+    try:
+        from readreceipt.cli import (
+            _do_purge_non_articles,
+            _do_purge_live_blogs,
+            _do_purge_outlets,
+            _do_reset_history_for_outlets,
+        )
+        if raw == "purge_non_articles":
+            _do_purge_non_articles(engine, dry_run=False)
+        elif raw == "purge_live_blogs":
+            _do_purge_live_blogs(engine, dry_run=False)
+        elif raw.startswith("purge_outlet:"):
+            outlets = [o.strip() for o in raw.split(":", 1)[1].split(",") if o.strip()]
+            _do_purge_outlets(engine, outlets, dry_run=False)
+        elif raw.startswith("reset_outlet_history:"):
+            outlets = [o.strip() for o in raw.split(":", 1)[1].split(",") if o.strip()]
+            _do_reset_history_for_outlets(engine, outlets=outlets, dry_run=False)
+        else:
+            log.error("RUN_CLEANUP_ON_BOOT=%r: unknown command, skipping", raw)
+            return
+        log.warning("✅ Cleanup %r complete — UNSET the env var now.", raw)
+    except Exception:
+        log.exception("Cleanup %r failed", raw)
+
+
 @app.on_event("startup")
 def _on_startup():
     global _scheduler
+    # Run any boot-triggered cleanup BEFORE the scheduler starts touching rows.
+    _maybe_run_boot_cleanup()
     feeds = load_feeds("feeds.yaml")
     scrape_one = _make_scrape_one()
     _scheduler = start_scheduler(engine=engine, feeds=feeds, scrape_one=scrape_one)

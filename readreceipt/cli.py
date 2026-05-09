@@ -44,6 +44,44 @@ def _do_purge_non_articles(engine, *, dry_run: bool) -> None:
     _purge_by_predicate(engine, should_skip_url, label="non-article", dry_run=dry_run)
 
 
+def _do_purge_outlets(engine, outlets: list[str], *, dry_run: bool) -> None:
+    """Delete all articles, versions, and changes for the named outlets."""
+    with session_scope(engine) as s:
+        targets = (
+            s.execute(select(Article).where(Article.outlet.in_(outlets)))
+            .scalars()
+            .all()
+        )
+        target_ids = [a.id for a in targets]
+
+        print(f"Found {len(targets)} article(s) across outlets {outlets}:")
+        # Print a small sample so the user can sanity-check before deleting.
+        for a in targets[:8]:
+            print(f"  - [{a.outlet}] {a.url}")
+        if len(targets) > 8:
+            print(f"  ... and {len(targets) - 8} more")
+
+        if dry_run:
+            print("DRY RUN — no rows deleted.")
+            return
+        if not target_ids:
+            return
+
+        n_changes = s.execute(
+            delete(Change).where(Change.article_id.in_(target_ids))
+        ).rowcount
+        n_versions = s.execute(
+            delete(Version).where(Version.article_id.in_(target_ids))
+        ).rowcount
+        n_articles = s.execute(
+            delete(Article).where(Article.id.in_(target_ids))
+        ).rowcount
+        print(
+            f"Deleted {n_articles} article(s), "
+            f"{n_versions} version(s), {n_changes} change(s)."
+        )
+
+
 def _purge_by_predicate(engine, predicate, *, label: str, dry_run: bool) -> None:
     with session_scope(engine) as s:
         all_articles = s.execute(select(Article)).scalars().all()
@@ -216,6 +254,13 @@ def main(argv: Optional[list[str]] = None) -> None:
         help="delete tracked articles that aren't editorial — live blogs, BBC Sounds, podcasts, audio/video, weather, programme guides",
     )
     parser.add_argument(
+        "--purge-outlet",
+        action="append",
+        default=None,
+        metavar="OUTLET",
+        help="delete every article (plus its versions and changes) for the given outlet slug; repeatable",
+    )
+    parser.add_argument(
         "--reset-outlet-history",
         action="append",
         default=None,
@@ -250,6 +295,12 @@ def main(argv: Optional[list[str]] = None) -> None:
         cfg = config.load()
         engine = create_engine_and_tables(cfg.database_url)
         _do_purge_non_articles(engine, dry_run=args.dry_run)
+        return
+
+    if args.purge_outlet:
+        cfg = config.load()
+        engine = create_engine_and_tables(cfg.database_url)
+        _do_purge_outlets(engine, args.purge_outlet, dry_run=args.dry_run)
         return
 
     if args.reset_outlet_history:

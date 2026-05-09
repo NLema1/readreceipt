@@ -762,8 +762,10 @@ export default function Landing() {
               />
             </div>
           ))}
-          {/* 12th cell to keep the 4-col grid square — hairline only */}
-          <div style={{ background: RR.paper2, height: 56 }} />
+          {/* Pad to a full row so the grid stays a clean rectangle */}
+          {Array.from({ length: (4 - (OUTLET_KEYS.length % 4)) % 4 }).map((_, i) => (
+            <div key={`pad-${i}`} style={{ background: RR.paper2, height: 56 }} />
+          ))}
         </div>
       </div>
 

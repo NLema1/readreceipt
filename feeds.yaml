@@ -20,8 +20,8 @@
   url: https://www.cbsnews.com/latest/rss/main
 - outlet: thehill
   url: https://thehill.com/feed/
-- outlet: sky
-  url: https://feeds.skynews.com/feeds/rss/world.xml
+- outlet: usatoday
+  url: https://www.usatoday.com/news-sitemap.xml
 - outlet: fox
   url: https://moxie.foxnews.com/google-publisher/latest.xml
 - outlet: nypost

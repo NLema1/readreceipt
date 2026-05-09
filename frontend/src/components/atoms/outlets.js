@@ -7,8 +7,8 @@ import nbc from "../../assets/logos/nbc.svg";
 import npr from "../../assets/logos/npr.svg";
 import nypost from "../../assets/logos/nypost.svg";
 import propublica from "../../assets/logos/propublica.svg";
-import sky from "../../assets/logos/sky.svg";
 import thehill from "../../assets/logos/thehill.svg";
+import usatoday from "../../assets/logos/usatoday.svg";
 
 // `scale` rebalances visual weight: square brand marks (NBC peacock,
 // The Hill stacked text, BBC blocks) get a > 1 multiplier so they read
@@ -23,7 +23,7 @@ export const OUTLETS = {
   nbc:        { label: 'NBC News',      short: 'NBC',        logo: nbc,        scale: 1.4  },
   cbs:        { label: 'CBS News',      short: 'CBS',        logo: cbs,        scale: 1.25 },
   thehill:    { label: 'The Hill',      short: 'The Hill',   logo: thehill,    scale: 1.5  },
-  sky:        { label: 'Sky News',      short: 'Sky',        logo: sky,        scale: 0.95 },
+  usatoday:   { label: 'USA Today',     short: 'USA Today',  logo: usatoday,   scale: 0.9  },
   fox:        { label: 'Fox News',      short: 'Fox',        logo: fox,        scale: 1.0  },
   nypost:     { label: 'New York Post', short: 'NY Post',    logo: nypost,     scale: 0.85 },
 };

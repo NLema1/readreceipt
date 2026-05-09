@@ -1,8 +1,10 @@
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
 import feedparser
+import httpx
 import yaml
 
 from readreceipt.storage import session_scope, upsert_article
@@ -30,13 +32,33 @@ def load_feeds(path: str) -> list[FeedSpec]:
     return [FeedSpec(outlet=item["outlet"], url=item["url"]) for item in data]
 
 
+_SITEMAP_UA = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/123.0.0.0 Safari/537.36"
+    )
+}
+
+
 def _fetch_feed(spec: FeedSpec) -> list[FeedEntry]:
+    if "sitemap" in spec.url.lower():
+        return _fetch_sitemap(spec)
     parsed = feedparser.parse(spec.url)
     return [
         FeedEntry(url=entry.link, outlet=spec.outlet)
         for entry in parsed.entries
         if hasattr(entry, "link") and entry.link
     ]
+
+
+def _fetch_sitemap(spec: FeedSpec) -> list[FeedEntry]:
+    """Discover article URLs from a Google-news-style XML sitemap. Used for
+    outlets that have killed their RSS feeds (USA Today)."""
+    resp = httpx.get(spec.url, headers=_SITEMAP_UA, timeout=15.0, follow_redirects=True)
+    resp.raise_for_status()
+    urls = [m.strip() for m in re.findall(r"<loc>([^<]+)</loc>", resp.text)]
+    return [FeedEntry(url=u, outlet=spec.outlet) for u in urls if u]
 
 
 def discover_new_articles(engine, feeds: list[FeedSpec]) -> list[int]:

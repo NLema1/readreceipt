@@ -83,31 +83,61 @@ def _do_purge_outlets(engine, outlets: list[str], *, dry_run: bool) -> None:
 
 
 def _purge_by_predicate(engine, predicate, *, label: str, dry_run: bool) -> None:
+    """Delete articles matching a URL predicate. Operates in batches and
+    flushes stdout aggressively so progress is visible in deploy logs even
+    when the orchestrator buffers heavily."""
+    import sys
+
+    def announce(msg: str) -> None:
+        print(msg, flush=True)
+
     with session_scope(engine) as s:
         all_articles = s.execute(select(Article)).scalars().all()
         targets = [a for a in all_articles if predicate(a.url)]
         target_ids = [a.id for a in targets]
 
-        print(f"Found {len(targets)} {label} article(s):")
-        for a in targets:
-            print(f"  - [{a.outlet}] {a.url}")
+        announce(f"Found {len(targets)} {label} article(s):")
+        # Print first 25 + last 5 as a sample so the log doesn't drown.
+        sample_head = targets[:25]
+        sample_tail = targets[-5:] if len(targets) > 30 else []
+        for a in sample_head:
+            announce(f"  - [{a.outlet}] {a.url}")
+        if sample_tail:
+            announce(f"  ... ({len(targets) - len(sample_head) - len(sample_tail)} more) ...")
+            for a in sample_tail:
+                announce(f"  - [{a.outlet}] {a.url}")
 
         if dry_run:
-            print("DRY RUN — no rows deleted.")
+            announce("DRY RUN — no rows deleted.")
             return
         if not target_ids:
             return
 
-        n_changes = s.execute(
-            delete(Change).where(Change.article_id.in_(target_ids))
-        ).rowcount
-        n_versions = s.execute(
-            delete(Version).where(Version.article_id.in_(target_ids))
-        ).rowcount
-        n_articles = s.execute(
-            delete(Article).where(Article.id.in_(target_ids))
-        ).rowcount
-        print(
+        # Delete in chunks so a single huge IN clause doesn't trip up Postgres
+        # and so we get progress logging between chunks.
+        BATCH = 100
+        n_changes = n_versions = n_articles = 0
+        try:
+            for i in range(0, len(target_ids), BATCH):
+                chunk = target_ids[i : i + BATCH]
+                announce(f"  ... batch {i // BATCH + 1}: deleting {len(chunk)} article(s)")
+                n_changes += s.execute(
+                    delete(Change).where(Change.article_id.in_(chunk))
+                ).rowcount or 0
+                n_versions += s.execute(
+                    delete(Version).where(Version.article_id.in_(chunk))
+                ).rowcount or 0
+                n_articles += s.execute(
+                    delete(Article).where(Article.id.in_(chunk))
+                ).rowcount or 0
+                # Flush each batch so partial progress survives a crash.
+                s.commit()
+        except Exception as exc:
+            announce(f"  ERROR mid-purge: {exc!r}")
+            sys.stdout.flush()
+            raise
+
+        announce(
             f"Deleted {n_articles} article(s), "
             f"{n_versions} version(s), {n_changes} change(s)."
         )

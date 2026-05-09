@@ -11,10 +11,26 @@ from readreceipt.discovery import FeedSpec, load_feeds
 from readreceipt.storage import (
     Article,
     Change,
+    Evaluation,
     Version,
     create_engine_and_tables,
     session_scope,
 )
+
+
+def _delete_evaluations_for_changes(s, change_filter):
+    """Delete Evaluation rows whose change_id matches the given Change-row filter.
+
+    Must run before any DELETE on Change rows because evaluations.change_id
+    has a NOT NULL FK back to changes.id (no ON DELETE CASCADE).
+    """
+    return s.execute(
+        delete(Evaluation).where(
+            Evaluation.change_id.in_(
+                select(Change.id).where(change_filter).scalar_subquery()
+            )
+        )
+    ).rowcount or 0
 from readreceipt.url_utils import is_live_blog_url, should_skip_url
 
 
@@ -67,6 +83,9 @@ def _do_purge_outlets(engine, outlets: list[str], *, dry_run: bool) -> None:
         if not target_ids:
             return
 
+        n_evals = _delete_evaluations_for_changes(
+            s, Change.article_id.in_(target_ids)
+        )
         n_changes = s.execute(
             delete(Change).where(Change.article_id.in_(target_ids))
         ).rowcount
@@ -78,7 +97,8 @@ def _do_purge_outlets(engine, outlets: list[str], *, dry_run: bool) -> None:
         ).rowcount
         print(
             f"Deleted {n_articles} article(s), "
-            f"{n_versions} version(s), {n_changes} change(s)."
+            f"{n_versions} version(s), {n_changes} change(s), "
+            f"{n_evals} evaluation(s)."
         )
 
 
@@ -117,10 +137,16 @@ def _purge_by_predicate(engine, predicate, *, label: str, dry_run: bool) -> None
         # and so we get progress logging between chunks.
         BATCH = 100
         n_changes = n_versions = n_articles = 0
+        n_evals = 0
         try:
             for i in range(0, len(target_ids), BATCH):
                 chunk = target_ids[i : i + BATCH]
                 announce(f"  ... batch {i // BATCH + 1}: deleting {len(chunk)} article(s)")
+                # Evaluations reference changes via FK with no ON DELETE CASCADE,
+                # so we must clear them before deleting changes.
+                n_evals += _delete_evaluations_for_changes(
+                    s, Change.article_id.in_(chunk)
+                )
                 n_changes += s.execute(
                     delete(Change).where(Change.article_id.in_(chunk))
                 ).rowcount or 0
@@ -139,7 +165,8 @@ def _purge_by_predicate(engine, predicate, *, label: str, dry_run: bool) -> None
 
         announce(
             f"Deleted {n_articles} article(s), "
-            f"{n_versions} version(s), {n_changes} change(s)."
+            f"{n_versions} version(s), {n_changes} change(s), "
+            f"{n_evals} evaluation(s)."
         )
 
 
@@ -156,12 +183,14 @@ def _do_purge_everything(engine, *, dry_run: bool) -> None:
         if dry_run:
             print("DRY RUN — no rows deleted.")
             return
+        n_evals = s.execute(delete(Evaluation)).rowcount
         n_changes = s.execute(delete(Change)).rowcount
         n_versions = s.execute(delete(Version)).rowcount
         n_articles = s.execute(delete(Article)).rowcount
         print(
             f"Deleted: {n_articles} article(s), {n_versions} version(s), "
-            f"{n_changes} change(s). Next 5-min tick will re-discover from RSS."
+            f"{n_changes} change(s), {n_evals} evaluation(s). "
+            f"Next 5-min tick will re-discover from RSS."
         )
 
 
@@ -178,12 +207,14 @@ def _do_reset_all_history(engine, *, dry_run: bool) -> None:
         if dry_run:
             print("DRY RUN — no rows deleted.")
             return
+        deleted_evals = s.execute(delete(Evaluation)).rowcount
         deleted_changes = s.execute(delete(Change)).rowcount
         deleted_versions = s.execute(delete(Version)).rowcount
         print(
             f"Cleared history: {deleted_changes} change(s), "
-            f"{deleted_versions} version(s). Articles preserved; next tick "
-            f"will capture a fresh first version for every tracked article."
+            f"{deleted_versions} version(s), {deleted_evals} evaluation(s). "
+            f"Articles preserved; next tick will capture a fresh first "
+            f"version for every tracked article."
         )
 
 
@@ -223,6 +254,7 @@ def _do_purge_polluted_history(engine, *, dry_run: bool) -> None:
             print("DRY RUN — no rows deleted.")
             return
 
+        n_evals = _delete_evaluations_for_changes(s, Change.article_id.in_(ids))
         n_changes = s.execute(
             delete(Change).where(Change.article_id.in_(ids))
         ).rowcount
@@ -231,8 +263,8 @@ def _do_purge_polluted_history(engine, *, dry_run: bool) -> None:
         ).rowcount
         print(
             f"Cleared history: {n_changes} change(s), "
-            f"{n_versions} version(s). Articles preserved; next tick will "
-            f"capture a fresh first version."
+            f"{n_versions} version(s), {n_evals} evaluation(s). "
+            f"Articles preserved; next tick will capture a fresh first version."
         )
 
 
@@ -255,6 +287,7 @@ def _do_reset_history_for_outlets(
             return
         if not ids:
             return
+        n_evals = _delete_evaluations_for_changes(s, Change.article_id.in_(ids))
         n_changes = s.execute(
             delete(Change).where(Change.article_id.in_(ids))
         ).rowcount
@@ -263,7 +296,8 @@ def _do_reset_history_for_outlets(
         ).rowcount
         print(
             f"Cleared history: {n_changes} change(s), "
-            f"{n_versions} version(s). Articles preserved; next tick will "
+            f"{n_versions} version(s), {n_evals} evaluation(s). "
+            f"Articles preserved; next tick will "
             f"capture a fresh first version with the cleaned scraper."
         )
 

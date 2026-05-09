@@ -503,7 +503,7 @@ export default function Landing() {
               <Mono style={{ color: RR.soft, fontSize: 11, letterSpacing: "0.1em" }}>
                 {ageLabel(a.first_seen)}
               </Mono>
-              <OutletMark outlet={a.outlet} height={12} mono />
+              <OutletMark outlet={a.outlet} height={16} withName={false} logoBox={70} />
               <div>
                 <div style={{ fontFamily: FONT.serif, fontSize: 19, lineHeight: 1.25, color: RR.ink }}>
                   {a.headline}

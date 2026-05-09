@@ -279,7 +279,7 @@ function FeedRow({ article, top, latestIso, vol, onOpen, highlight }) {
           RR-{article.id}
         </Mono>
       </div>
-      <OutletMark outlet={article.outlet} height={12} />
+      <OutletMark outlet={article.outlet} height={18} withName={false} logoBox={80} />
       <SevPill s={article.max_severity || 0} />
       <div>
         <button
@@ -359,7 +359,7 @@ function FeedCard({ article, top, latestIso, onOpen }) {
       onClick={onOpen}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <OutletMark outlet={article.outlet} height={12} />
+        <OutletMark outlet={article.outlet} height={14} withName={false} />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Mono style={{ color: RR.soft, fontSize: 10 }}>{ageLabel(latestIso || article.first_seen)}</Mono>
           <SevPill s={article.max_severity || 0} />

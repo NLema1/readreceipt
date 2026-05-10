@@ -1,86 +1,99 @@
-# ReadReceipt v1 — Design
+# Readreceipt — Design
 
-**Status:** Approved design, ready for implementation planning.
-**Date:** 2026-05-04
+**Status:** Live in production at readreceipt.io.
+**Original draft:** 2026-05-04 (as "ReadReceipt v1" / `newsdiff-v2`)
+**Last updated:** 2026-05-10 — reflects current production state.
 
 ## Goal
 
 Track changes to published news articles over time, classify each change with an LLM, and surface only meaningful edits (fact changes, quote walk-backs, headline reframes) — not typos or layout tweaks.
 
-This is a real-product attempt: deployed publicly, intended for outside users, intended to be iterated on based on feedback.
+Real product, deployed publicly, iterated on based on use.
 
 ## Why
 
-NewsDiffs (2012) captured diffs but drowned users in noise. LLMs now make automated significance-ranking cheap and viable, so we can show only the edits that matter.
+NewsDiffs (2012) captured diffs but drowned users in noise. LLMs now make automated significance-ranking cheap and viable, so we can show only the edits that matter. Readreceipt is the modern take on that idea, with an editorial-broadsheet UI instead of a developer-debug UI.
 
-## MVP Scope
+## Changelog since 2026-05-04
 
-- Auto-track three outlets via RSS: **Guardian, BBC, NPR**
-- (NYT and WaPo are excluded: paywalls would force ToS violations or partial-content workarounds.)
+Everything below the changelog has been rewritten to reflect what's actually shipped.
+
+| Area | What changed |
+|---|---|
+| **Outlets** | 11 outlets (Guardian, BBC, NPR, Al Jazeera, ProPublica, NBC, CBS, The Hill, USA Today, Fox, NY Post). Sky News removed (Akamai blocks all fetches); Sky's archived rows still in DB but no longer surfaced. |
+| **Discovery** | Beyond RSS: also handles XML sitemaps (USA Today via `news-sitemap.xml`). URL filter rejects non-article paths (`/sounds/`, `/video/`, `/podcast/`, `/programmes/`, `/iplayer/`, `/weather/`, etc.) at the discovery step. |
+| **Scraping** | `_fetchable_url()` per-outlet URL rewrites — The Hill is fetched via its `/amp/` variant to bypass the bot wall. NY Post footer cruft (social-follow strip, signup CTAs) stripped via `trim_after_markers` + `trim_trailing_chrome`. |
+| **Data model** | Added `evaluations` table for the eval-pipeline output. Existing tables unchanged. |
+| **API** | New `/api/stats` endpoint for server-side aggregates (counts + per-outlet + per-type sums) so the dashboard isn't capped by `/api/changes/recent`'s 500-row limit. |
+| **Frontend** | Complete redesign to "Readreceipt 2.0" — Instrument Serif + Inter + JetBrains Mono on cream paper, multi-page React Router app (`/` Landing, `/feed` Feed, `/article/:id` Detail, `/search` Search, `/stats` Stats), global ⌘K palette, mobile bottom-tab layout. |
+| **Backend SPA fallback** | `SPAStaticFiles` subclass returns `index.html` on 404 so direct URL hits to non-root client routes work. |
+| **CLI** | Added `--purge-non-articles`, `--purge-outlet`, plus `RUN_CLEANUP_ON_BOOT` env-var trigger so management commands can be run from the Railway web UI without local CLI access. |
+| **Theme** | Dark-mode-only is gone — the live site is light-mode-only (cream paper, ink text). |
+
+## Scope (current)
+
+- 11 outlets via RSS + sitemap (see Discovery section)
 - Snapshot articles every 30 minutes for the first 24 hours after first publish, then every 2 hours through day 7
 - Detect content changes, classify with Claude Haiku 4.5
-- Two-pane web app: article list (left) + change timeline (right), dark mode only
+- Five-page editorial-style web app (Landing, Feed, Article timeline, Search, Stats)
 - Deployed to Railway with Postgres
 
-## Non-Goals (v1)
+## Non-Goals
 
 - User accounts, authentication, personalization
 - Email / push alerts
 - Browser extension
-- More than three outlets
 - Image/video change tracking
 - User-submitted feeds via UI
-- Dark/light theme switching (dark only)
-- URL-based deep links to articles or changes (selection lives in component state)
+- Light/dark theme switching (light-on-cream only)
 
 ## Tech Stack
 
-- **Backend:** Python 3.11, FastAPI, SQLAlchemy
+- **Backend:** Python 3.11, FastAPI, SQLAlchemy 2.x
 - **Database:** Postgres in production (Railway-provisioned), SQLite locally (`DATABASE_URL` swap)
-- **Scraper:** `feedparser` (RSS) + `trafilatura` (article body extraction). Headline pulled separately from `og:title` meta tag.
-- **Diffing:** `difflib` (stdlib)
+- **Scraper:** `feedparser` (RSS) + `trafilatura` (article body extraction). XML-sitemap fallback for outlets without RSS. Headline pulled separately from `og:title`.
+- **Diffing:** `difflib` (stdlib) for body; custom word-level LCS in `frontend/src/lib/format.js` for headline diffs
 - **LLM:** Anthropic SDK, model `claude-haiku-4-5`, JSON mode, system-prompt caching
 - **Scheduler:** APScheduler, in-process inside the FastAPI app
-- **Frontend:** React + Vite + Tailwind CSS
-- **Diff viewer:** `react-diff-viewer-continued`, word-level
+- **Frontend:** React 18 + Vite + Tailwind CSS + `react-router-dom`. Instrument Serif + Inter + JetBrains Mono from Google Fonts.
 - **Deploy:** Railway. Frontend built at image build time and served as static files by FastAPI.
 
 ## Architecture Overview
 
-Single Python web service. APScheduler runs inside the same process as the FastAPI app on a 5-minute tick. Each tick performs RSS discovery and re-scrapes due articles. Frontend is a separate Vite build, copied into the backend image and served from `/`.
+Single Python web service. APScheduler runs inside the same process as the FastAPI app on a 5-minute tick. Each tick performs feed discovery (RSS or sitemap) and re-scrapes due articles. Frontend is a separate Vite build, copied into the backend image and served from `/` via a SPA-aware static-files mount.
 
 ```
 RSS feeds  ──┐
              ├──►  scheduler tick (5 min)  ──►  scrape → diff → pre-filter → classifier → DB
-URL list   ──┘                                                                            │
+sitemaps   ──┘                                                                            │
                                                                                           ▼
                                                                                     Postgres
                                                                                           │
               ┌───────────────────── HTTP ───────────────────────────────────────────────┘
               ▼
-         FastAPI  ──►  React frontend (polling every 30s)
+         FastAPI  ──►  React SPA (/ /feed /article/:id /search /stats, polling every 30s)
 ```
 
 ### Single-instance assumption
 
-APScheduler in-process means the deployment is single-instance for v1. If we ever scale to 2+ web instances:
+APScheduler in-process means the deployment is single-instance. If we ever scale to 2+ web instances:
 
 - Scrape jobs would run twice (one per instance) — duplicate work, duplicate LLM cost.
 - Cheapest fix: a `scheduler_lock` row in Postgres acquired with a 10-minute TTL.
 
-Out of scope for v1, mentioned here so future-us doesn't accidentally horizontally scale.
+Still out of scope; not a real problem at current load.
 
 ## Data Model
 
-Three tables.
+Four tables.
 
 ### `articles`
 | column | type | notes |
 |---|---|---|
 | `id` | pk | |
 | `url` | text, unique | canonicalized — query params and fragments stripped |
-| `outlet` | enum | `guardian` \| `bbc` \| `npr` |
-| `first_seen` | timestamp | first time URL appeared in any RSS feed |
+| `outlet` | string | one of 11 outlet slugs |
+| `first_seen` | timestamp | first time URL appeared in any RSS/sitemap feed |
 | `last_checked` | timestamp | last scrape attempt (success or failure) |
 | `tracking_until` | timestamp | `first_seen + 7 days` |
 | `current_headline` | text | denormalized — latest version's headline. Lets the article list render in one SELECT instead of SELECT + JOIN-MAX-on-versions per row. |
@@ -92,7 +105,7 @@ Three tables.
 | `article_id` | fk → articles | |
 | `scraped_at` | timestamp | |
 | `headline` | text | from `og:title` |
-| `body_text` | text | trafilatura output, plain text only — no raw HTML |
+| `body_text` | text | trafilatura output, plain text only — chrome/footers stripped |
 | `content_hash` | text | SHA-256 of `headline + "\n" + body_text`, used by the pre-filter fast path |
 
 ### `changes`
@@ -102,10 +115,25 @@ Three tables.
 | `article_id` | fk → articles | |
 | `from_version_id` | fk → versions | |
 | `to_version_id` | fk → versions | |
-| `change_type` | enum | `headline_change` \| `fact_change` \| `quote_change` \| `source_removed` \| `addition` \| `deletion` \| `other` |
-| `severity` | int | 1–5 from the classifier; `0` is a sentinel reserved for the classifier-failure fallback row (see Classifier section) |
+| `change_type` | enum | `headline_change` \| `fact_change` \| `quote_change` \| `source_removed` \| `addition` \| `deletion` \| `temporal_update` \| `routine_update` \| `other` |
+| `severity` | int | 1–5 from the classifier; `0` is a sentinel reserved for the classifier-failure fallback row |
 | `summary` | text | classifier's one-sentence description |
 | `classified_at` | timestamp | |
+
+### `evaluations`
+Eval-pipeline output: external evaluator (Gemini, GPT, human) judging Haiku's classifications.
+
+| column | type | notes |
+|---|---|---|
+| `id` | pk | |
+| `change_id` | fk → changes | the change being evaluated. **No `ON DELETE CASCADE`** — any code that deletes Changes must delete Evaluations first. |
+| `evaluator` | string | e.g. `"gemini-2.5-pro"`, `"gpt-4o"`, `"human:nate"` |
+| `prompt_version` | string | |
+| `severity` | int | the evaluator's call |
+| `change_type` | enum | the evaluator's call |
+| `reasoning` | text | the evaluator's free-text rationale |
+| `agrees_with_haiku` | bool | derived |
+| `evaluated_at` | timestamp | |
 
 ### Indexes
 - `articles(url)` unique
@@ -113,32 +141,41 @@ Three tables.
 - `versions(article_id, scraped_at DESC)` — for "latest version" lookup
 - `changes(article_id, classified_at DESC)` — timeline rendering
 - `changes(severity, classified_at DESC)` — `min_severity` filter on the recent-changes feed
+- `evaluations(change_id)` — eval lookup
 
 ### What's *not* modeled
-- No `outlets` table — three hardcoded enum values is fine.
+- No `outlets` table — outlet slugs are hardcoded in `feeds.yaml` (backend) and `OUTLETS` (frontend).
 - No soft-delete columns — articles past `tracking_until` simply stop being scraped; their rows persist.
 - No raw HTML — only extracted body text.
 
-## Scraping Pipeline & Scheduler
+## Discovery & Scraping Pipeline
 
 A single APScheduler job runs every **5 minutes**. Each tick does two things in order.
 
 ### 1. Discovery pass
-- Fetch every RSS feed in `feeds.yaml`.
-- For each entry: canonicalize URL (strip query params and fragments) → if not in `articles`, insert a new row and enqueue an immediate scrape.
+
+For each feed in `feeds.yaml`:
+- **RSS feeds**: `feedparser.parse(url)`, extract `entry.link` from each entry.
+- **Sitemaps** (detected when "sitemap" appears in the URL): plain HTTP fetch + regex extract `<loc>` elements. Used for outlets that killed their RSS feeds (USA Today).
+
+For each candidate URL:
+1. Canonicalize (strip query string + fragment, lowercase scheme/host, drop trailing slash).
+2. Reject via `should_skip_url()` — covers live-blog patterns (`/live/`, `/live-updates/`, `/live-blog/`) and non-article patterns (`/sounds/`, `/audio/`, `/podcast`, `/programmes/`, `/iplayer/`, `/video/`, `/videos/`, `/weather/`).
+3. If not already in `articles`, insert a new row and enqueue an immediate scrape.
 
 ### 2. Re-scrape pass
-- Query articles where `tracking_until > now` AND `last_checked` is older than its threshold.
-- Threshold logic, computed in SQL:
-  - Article age (now − `first_seen`) < 24h → re-scrape if `last_checked` > 30 min ago.
-  - Article age ≥ 24h → re-scrape if `last_checked` > 2h ago.
 
-A 5-minute tick (rather than 30) means new RSS items get picked up quickly and the cadence logic lives in the query, not in the scheduler.
+Query articles where `tracking_until > now` AND `last_checked` is older than its threshold.
+
+Threshold logic, computed in SQL:
+- Article age (now − `first_seen`) < 24h → re-scrape if `last_checked` > 30 min ago.
+- Article age ≥ 24h → re-scrape if `last_checked` > 2h ago.
 
 ### Per-article scrape flow
 
 ```
 fetch URL  →  trafilatura body + og:title headline
+           →  strip outlet chrome (NY Post footer, etc.)
            →  compute content_hash
            →  load latest version for this article
            ┌  no prior version  → insert v1, return (no diff, no LLM)
@@ -148,6 +185,12 @@ fetch URL  →  trafilatura body + og:title headline
                                   └ pre-filter passes  → insert version, call classifier, insert change row
 ```
 
+### Per-outlet URL rewrites at fetch time
+
+`_fetchable_url(url)` in `scraper.py` rewrites URLs that need outlet-specific handling. Current rules:
+
+- **The Hill**: 403'd on canonical article URLs (Varnish + PerimeterX). Rewrite to `<url>/amp/` which serves the same content cleanly. Canonical URL stored in DB stays unchanged so the public "Open original ↗" link still hits the regular page.
+
 ### Pre-filter rules
 Skip the LLM if any one matches:
 1. `content_hash` unchanged (covered by the fast path).
@@ -155,14 +198,19 @@ Skip the LLM if any one matches:
 3. Diff is fewer than 20 characters total.
 4. Diff consists only of punctuation / quotation-mark changes.
 
+### Footer / chrome stripping
+
+After trafilatura extraction:
+- `trim_after_markers` truncates body at known section markers (RELATED, MORE FROM, POST NEWS, etc.)
+- `filter_chrome_lines` drops boilerplate lines (newsletter promos, social-follow strips, "Sign up here" CTAs)
+- `trim_trailing_chrome` walks back from the end of the body, dropping known section labels (California Post, Page Six, Home delivery, Post News) until it hits real content
+
 ### URL canonicalization
 - Strip the entire query string and fragment.
 - Lowercase the scheme and host.
 - Trailing slash normalized off (except for bare-host paths).
 
-This collapses tracking-param duplicates that RSS feeds frequently emit.
-
-### `feeds.yaml`
+### `feeds.yaml` (current — 11 outlets, 14 feeds)
 
 ```yaml
 - outlet: guardian
@@ -177,17 +225,30 @@ This collapses tracking-param duplicates that RSS feeds frequently emit.
   url: https://feeds.npr.org/1001/rss.xml
 - outlet: npr
   url: https://feeds.npr.org/1004/rss.xml
+- outlet: aljazeera
+  url: https://www.aljazeera.com/xml/rss/all.xml
+- outlet: propublica
+  url: https://feeds.propublica.org/propublica/main
+- outlet: nbc
+  url: https://feeds.nbcnews.com/nbcnews/public/news
+- outlet: cbs
+  url: https://www.cbsnews.com/latest/rss/main
+- outlet: thehill
+  url: https://thehill.com/feed/
+- outlet: usatoday
+  url: https://www.usatoday.com/news-sitemap.xml      # sitemap, not RSS
+- outlet: fox
+  url: https://moxie.foxnews.com/google-publisher/latest.xml
+- outlet: nypost
+  url: https://nypost.com/feed/
 ```
 
-(Exact feed URLs to be confirmed during Phase 1 step 2; the structure is stable.)
+**Sky News was previously included; removed because Akamai 403s every fetch path we tried (direct, AMP, Googlebot UA). Its archived articles remain in the DB.**
 
 ### Error handling
-- **Scrape failure** (timeout, 404, trafilatura returns empty) → log, bump `last_checked`, move on. Tick keeps going.
-- **Classifier failure** (network error, invalid JSON, schema-invalid output) → retry once with the same input. If still failing, write a `change` row with `change_type='other'`, `severity=0`, `summary='classifier failed'`. We still know *something* changed; we just couldn't characterize it.
-- **RSS feed failure** → skip that feed for this tick, log, retry next tick.
-
-### `--dry-run` CLI flag
-Runs discovery + re-scrape passes in memory. Prints what *would* happen. Writes nothing to the DB. Makes no LLM calls.
+- **Scrape failure** (timeout, 404, trafilatura returns empty, 403) → log with status code, bump `last_checked`, move on. Tick keeps going.
+- **Classifier failure** (network error, invalid JSON, schema-invalid output) → retry once with the same input. If still failing, write a `change` row with `change_type='other'`, `severity=0`, `summary='classifier failed'`.
+- **RSS/sitemap feed failure** → skip that feed for this tick, log, retry next tick.
 
 ## Classifier
 
@@ -217,170 +278,119 @@ User: <old version: headline + body>
 ```
 
 ### Body truncation
-Versions are sent to the LLM as headline + body text. Body is hard-capped at **24,000 characters** per version (≈ 6,000 tokens, conservatively). News articles almost never exceed this; long-form pieces (rare in our outlets) get tail-truncated. We use a character cap rather than a token cap to avoid running a tokenizer in the hot path.
+Versions are sent to the LLM as headline + body text. Body is hard-capped at **24,000 characters** per version (≈ 6,000 tokens, conservatively). News articles almost never exceed this; long-form pieces (rare in our outlets) get tail-truncated.
 
 ### Output schema (enforced)
 ```json
 {
-  "change_type": "headline_change | fact_change | quote_change | source_removed | addition | deletion | other",
+  "change_type": "headline_change | fact_change | quote_change | source_removed | addition | deletion | temporal_update | routine_update | other",
   "severity": 1,
   "summary": "one sentence describing what changed and why it might matter"
 }
 ```
 
-### Validation
-Parse JSON. If `change_type` isn't one of the seven enum values, or `severity` isn't an integer 1–5, treat as classifier failure and run the retry-once / fallback flow above.
-
 ### Prompt caching
-The system prompt is cached via `cache_control`. The user-message content (the two version blocks) varies per call and is not cached. At ~200–400 calls/day this is meaningful: ~30% input-cost reduction.
-
-### Cost discipline
-- Pre-filter eliminates the bulk of checks before the model is touched.
-- We classify only on real content deltas that survive the pre-filter — typically 5–15% of scrapes.
-- We never re-classify a `change` row. Once written, it is frozen history.
+The system prompt is cached via `cache_control`. The user-message content varies per call and is not cached. Meaningful ~30% input-cost reduction at current volume.
 
 ### Cost projection
-- ~200 new articles/day across three outlets.
-- ~84 scrape attempts per article over its 7-day tracking window.
+- ~200–400 new articles/day across 11 outlets.
 - Most scrapes hit the hash-unchanged fast path. Real content deltas: ~5–15% of scrapes.
-- Realistic LLM volume: 200–400 calls/day.
+- Realistic LLM volume: 200–500 calls/day.
 - Comfortably under the $2/day budget at Haiku pricing.
 
 ## API
 
-Read-only. There are no user-write actions in v1.
+Read-only. There are no user-write actions.
 
 | endpoint | description |
 |---|---|
-| `GET /api/articles` | List of tracked articles with `change_count` and `max_severity` denormalized. Sorted by most recent change desc. |
+| `GET /api/articles` | List of tracked articles with `change_count` and `max_severity` denormalized. Sorted by most recent change desc. Supports `min_severity`, `outlet`, `since`, `q` (text search), `url` (canonicalize-and-find), repeatable `change_type=`. |
 | `GET /api/articles/{id}` | One article with full version history and change history. Includes each version's body so the frontend can render diffs without a second round-trip. |
-| `GET /api/changes/recent` | Flat feed of changes across all articles. Useful for a future "recent meaningful changes" view; cheap to expose now. |
+| `GET /api/changes/recent` | Flat feed of changes across all articles. Supports `min_severity`, `outlet`, `since`, `limit` (default 100, max 500). |
+| `GET /api/stats` | **Server-side aggregates** so the dashboard isn't capped by the recent-changes 500-row limit. Returns `{ articles, versions, edits, vibe_shifts, by_outlet[], by_type[] }`. |
 
-### Query params (all three endpoints)
+### Query params (shared)
 - `min_severity` — int, default 0
-- `outlet` — `guardian` \| `bbc` \| `npr`, default all
-- `since` — ISO timestamp, default 7 days ago
+- `outlet` — one of the 11 slugs (single value; multi-outlet filtering happens client-side)
+- `since` — ISO timestamp, or the literal string `"all"`. Default: 7 days ago.
+- `change_type` — repeatable, one of the 9 enum values
 
-### Pagination
-Not in v1. ~200 articles/day × 7 days = ~1,400 active rows fits in a single response. Add pagination if/when it becomes a problem.
+### SPA fallback
+
+`SPAStaticFiles(StaticFiles)` in `main.py` catches 404s from the static mount and returns `index.html` instead. This lets direct URL hits to client routes (`/feed`, `/article/123`, `/search`, `/stats`) be handled by React Router instead of returning FastAPI's JSON `{"detail":"Not Found"}`. `/api/*` routes are matched before the static mount catches them, so API 404s still propagate normally.
 
 ## Frontend
 
-Dark mode only.
+Light-mode-only, editorial broadsheet aesthetic.
 
-### Theme
-- Background: near-black
-- Panels: dark gray
-- Text: light gray
-- Tailwind dark utilities (`darkMode: 'class'`, applied to `<html>` at boot)
+### Design system
 
-### Layout
+- **Palette**: cream paper `#FAF7F0`, ink `#14110D`, red `#C8311E`, amber `#B26A00`, green `#2F7A52`, blue `#2A4A6B`.
+- **Typography**: Instrument Serif (display + italic accents), Inter (UI body), JetBrains Mono (kickers, timestamps, severity codes).
+- **No gradients, no rounded cards with accent-border left bars, no emoji.** Severity color is the only saturated hue and is used sparingly.
 
-Two-pane shell. `App.jsx` owns the selected-article state.
+### Routes
 
-```
-┌────────────────────────────────────────────────────────────┐
-│  ReadReceipt                                       [filter]│
-├──────────────────────────┬─────────────────────────────────┤
-│                          │   "Fed signals rate cut"        │
-│  ● Guardian              │                                 │
-│    "Fed signals..."      │   ○  Now                        │
-│    2 changes             │   │                             │
-│                          │   ●  2h ago — headline_change · 4│
-│  ● BBC                   │   │       "rate cut" → "rate hold"│
-│    "Senate vote..."      │   │                             │
-│    1 change              │   •  4h ago — quote_change · 2  │
-│                          │   │                             │
-│  ● NPR                   │   ●  6h ago — fact_change · 5   │
-│    "Climate report..."   │   │                             │
-│    5 changes             │   ○  9h ago — first published   │
-└──────────────────────────┴─────────────────────────────────┘
-```
+| route | page | content |
+|---|---|---|
+| `/` | `Landing` | Hero, sample receipt (real spotlight article), outlet marquee, How-It-Works, severity legend, "On the tape" recent-articles strip, footer. |
+| `/feed` | `Feed` | Filter bar (window/sev/type/outlet), outlet tabs with counts, 6-column row list with diff descriptor + sparkline + open-timeline link. |
+| `/article/:id` | `Detail` | Masthead with current/original headline diff, 5-stat strip, tabs (Timeline / Diff viewer / All versions / Sources). Timeline events render an inline word-level `Diff` for headline_change rows. Sidebar: cumulative-volatility sparkline, edit composition, source card, version log. |
+| `/search` | `Search` | Italic-serif input bound to `q`. Suggested filter chips. Filter rail (outlets checkboxes, min-sev pills, edit-type chips, window selector). URL paste auto-detects + surfaces "Open RR-XXXX →" jump button when API resolves. State syncs to URL search params. |
+| `/stats` | `Stats` | Top stat strip, per-outlet bar chart, edit composition (stacked bar + per-type rows from `/api/stats by_type`), 24h volatility bar chart, day×hour heatmap, outlet leaderboard. |
 
-### Components
-- `App.jsx` — shell, owns selected-article state.
-- `ArticleList.jsx` — left pane. Each row: outlet badge, headline, change count, max-severity dot.
-- `Timeline.jsx` — right pane. Vertical 1-pixel line top to bottom of the panel; dots aligned on it.
-- `ChangeNode.jsx` — single timeline node. Click expands inline.
-- `DiffViewer.jsx` — wraps `react-diff-viewer-continued`, word-level. Headline diff on top, body diff below, in one component.
-- `FilterBar.jsx` — three controls.
+### Shared chrome
 
-### Timeline visual
-- **One thin vertical line** (1px, mid-gray) runs top-to-bottom of the timeline panel.
-- Each event is a **filled circle centered on the line**.
-- **Color encodes `change_type`**:
-  - `headline_change` — blue
-  - `fact_change` — red
-  - `quote_change` — purple
-  - `source_removed` — orange
-  - `addition` — teal
-  - `deletion` — pink
-  - `other` — gray
-- **Size encodes `severity`**:
-  - sev 1 — 6px
-  - sev 2 — 9px
-  - sev 3 — 12px
-  - sev 4 — 16px
-  - sev 5 — 20px
-- **"Now" node** at top: hollow ring, no severity, no category.
-- **"First published" node** at bottom: hollow ring.
-- Click a solid dot → row expands inline below it to show the diff. The vertical line continues uninterrupted to the right of the expanded content so the spine is preserved.
-- A small **legend** at the top of the timeline panel: one row of seven colored dots with category labels. Collapsible.
+- `Layout.jsx` wraps every route — desktop top-nav (Readreceipt logo + Feed/Stats/Search/Method tabs + search box that opens ⌘K palette), mobile bottom tabbar (Home / Feed / Search / Stats).
+- `CommandPalette.jsx` — global ⌘K / Ctrl+K overlay. Dark ink background. Live `fetchArticles` (debounced). URL paste shows "URL DETECTED" badge. Empty state surfaces 5 quick filter shortcuts. ↑/↓ navigate, Enter opens, Esc closes.
 
-### Article list dot
-Same color/size system. The row's dot uses the color of the article's most recent significant change-type and the size of its max severity. Visual consistency across panes.
+### Atoms (`src/components/atoms/`)
 
-### Filter bar
-- **Min-severity slider**, 0–5. Default min = 2 (hides cosmetic noise).
-- **Outlet multi-select** — Guardian / BBC / NPR.
-- **Time window** — 24h / 7d / all.
+`Hair`, `Kicker`, `Mono`, `SerifI`, `OutletMark`, `SevDot`, `SevPill`, `TypeTag`, `Diff`, `Sparkline`. Each is a one-file component, consumed by every page.
+
+### Per-outlet logo scaling
+
+`OUTLETS` in `atoms/outlets.js` includes a `scale` multiplier per outlet so square brand marks (NBC peacock 1.4×, The Hill stacked 1.5×, CBS eye 1.25×, BBC blocks 1.05×) read at similar visual weight to wide wordmarks (NY POST 0.85×, ProPublica 0.85×). `OutletMark` multiplies its `height` prop by this scale.
+
+### Responsive
+
+Each page renders desktop + mobile variants gated by Tailwind's `md:` breakpoint (`hidden md:block` / `md:hidden`). Charts use inline SVG (no Recharts / Chart.js). Mobile uses a fixed bottom tabbar; desktop uses sticky top nav.
 
 ### Polling
 - `/api/articles` polled every 30s.
+- `/api/changes/recent` polled every 30s with `limit=500`.
+- `/api/stats` polled every 30s.
 - `/api/articles/{id}` polled every 60s when an article is selected.
-- Both pause when the tab is hidden (`document.visibilitychange`).
+- All pause when the tab is hidden (`document.visibilitychange`).
 
-### Empty states
-- No articles tracked yet → "Watching feeds. New articles will appear here as they publish."
-- Article selected but no changes → "No meaningful edits detected yet." (with subtle "first published" timestamp).
-- Filter excludes everything → "No changes match your filters." with a clear-filters button.
+## CLI & Boot-Time Cleanup
 
-## Build Order
+`readreceipt/cli.py` exposes management commands. Run via Railway CLI (`railway run python -m readreceipt.cli ...`) or via the boot-trigger env var (no install needed — see below).
 
-### Phase 1 — Backend pipeline (CLI-testable)
-1. Scaffold: venv, `requirements.txt`, `.env.example`, `feeds.yaml`, project layout (`scraper.py`, `storage.py`, `differ.py`, `classifier.py`, `scheduler.py`, `api.py`, `main.py`).
-2. Scraper for **Guardian** first. Verify trafilatura body + `og:title` headline extraction look clean. URL canonicalization helper.
-3. SQLAlchemy schema + storage layer. SQLite locally, Postgres via `DATABASE_URL`.
-4. Differ + pre-filter rules. Unit tests for the four pre-filter conditions.
-5. Classifier: Anthropic SDK, JSON mode, cached system prompt. Schema validation, retry-once on failure, fallback `change_type='other'` row.
-6. APScheduler 5-min job. Run locally for ~1 hour against Guardian only to confirm full discover → scrape → diff → classify → store loop works.
-7. Add BBC and NPR. Re-verify trafilatura on each.
+| flag | what it does |
+|---|---|
+| `--dry-run` | print what would happen without writing |
+| `--purge-live-blogs` | drop articles whose URL matches live-blog patterns |
+| `--purge-non-articles` | drop articles whose URL matches non-article patterns (audio, video, podcast, weather, etc.) |
+| `--purge-outlet OUTLET` | drop every article for one outlet (repeatable) |
+| `--reset-outlet-history OUTLET` | drop versions+changes for an outlet, keep article rows so next poll re-snapshots |
+| `--reset-all-history` | wipe all versions+changes |
+| `--purge-everything` | wipe everything; discovery repopulates from feeds |
+| `--purge-polluted-history` | reset history for articles with bot-protection / paywall interstitial patterns |
 
-### Phase 2 — API
-8. FastAPI endpoints with query params.
-9. `curl` each endpoint; confirm JSON shape matches frontend needs.
+All purges delete in the order `evaluations → changes → versions → articles` to respect FK constraints (no `ON DELETE CASCADE` on the eval-pipeline tables).
 
-### Phase 3 — Frontend
-10. Vite + React + Tailwind. Dark mode by default.
-11. Two-pane layout shell.
-12. `ArticleList` wired to `/api/articles`, with the per-row color/size dot.
-13. `Timeline` with vertical line and colored/sized dots. Hollow-ring bookends. Collapsible legend.
-14. `ChangeNode` inline expand → `DiffViewer` (word-level).
-15. `FilterBar` (severity slider default 2, outlet multi-select, time window).
+### Boot-time trigger
 
-### Phase 4 — Polish
-16. Visibility-pause polling.
-17. Empty states (three flavors above).
-18. Loading + error states.
-19. Spacing, typography, hover states pass.
+`main.py` checks `RUN_CLEANUP_ON_BOOT` on startup. If set, runs the named cleanup once before the scheduler starts. Lets you trigger purges entirely from the Railway web UI:
 
-### Phase 5 — Deploy
-20. `Dockerfile` (multi-stage: build frontend, copy `dist/` into Python image, FastAPI serves it).
-21. `railway.toml`.
-22. `README.md` (local dev, env vars, deploy instructions).
-23. GitHub push.
-24. Railway: connect repo, provision Postgres, set `ANTHROPIC_API_KEY` and `ENVIRONMENT=prod`. Deploy.
-25. Verify live: feeds scraping, articles appearing, at least one classified change.
+```
+RUN_CLEANUP_ON_BOOT=purge_non_articles
+RUN_CLEANUP_ON_BOOT=purge_outlet:sky,fox
+RUN_CLEANUP_ON_BOOT=reset_outlet_history:nypost
+```
+
+Workflow: set env var → Railway auto-redeploys → check deploy logs for `✅ Cleanup ... complete` → unset env var → redeploy again. Logs print a loud reminder to unset.
 
 ## Environment Variables
 
@@ -388,19 +398,22 @@ Same color/size system. The row's dot uses the color of the article's most recen
 |---|---|---|
 | `ANTHROPIC_API_KEY` | yes | from console.anthropic.com |
 | `DATABASE_URL` | yes in prod | Railway provides automatically; locally defaults to SQLite at `./readreceipt.db` |
-| `ENVIRONMENT` | optional | `dev` \| `prod`, controls log verbosity and a few ergonomic toggles |
+| `ENVIRONMENT` | optional | `dev` \| `prod`, controls log verbosity |
+| `RUN_CLEANUP_ON_BOOT` | optional | one-shot maintenance trigger — see CLI section |
 
 ## Success Criteria
 
-- Runs on Railway for 7 consecutive days without crashing.
-- Catches at least one real, meaningful edit (severity ≥ 3) during that week.
-- Pre-filter eliminates ≥ 50% of post-hash-mismatch diffs before the LLM is called.
-- LLM cost stays under $2/day at MVP scope.
+- ✅ Runs on Railway without crashing.
+- ✅ Catches meaningful edits (severity ≥ 3) daily across all 11 outlets.
+- ✅ Pre-filter eliminates ≥ 50% of post-hash-mismatch diffs before the LLM is called.
+- ✅ LLM cost stays under $2/day at current scope.
 
-## Risks & Open Concerns
+## Open Concerns / Known Gaps
 
-- **trafilatura quality on BBC and NPR** is unverified. If extraction is dirty (boilerplate, navigation crud), we'll either need site-specific selectors or a fallback extractor. Phase 1 step 7 is the gate.
-- **AP and Reuters were excluded after a live verification spike** revealed that AP no longer publishes public RSS at the URL we tried (DNS does not resolve), and Reuters dropped public RSS entirely. BBC and NPR are confirmed working alternatives with full body extraction and reliable RSS endpoints.
-- **RSS feed coverage.** Outlets sometimes only publish a subset of articles to RSS. We'll see what we see; v1 doesn't try to be comprehensive.
-- **Single-instance scheduler** is fine for v1 but is a known scaling cliff (see Architecture Overview).
-- **No retroactive archive.** We only see edits to articles published *after* deployment. Historical articles are invisible to us. This is intentional for MVP.
+- **Sky News** is unreachable (Akamai). Would need a JS-capable scraper (Playwright) or paid scraping proxy to revive.
+- **The Hill** depends on the `/amp/` variant continuing to serve. If they remove or paywall it, we'll need another bypass.
+- **USA Today** depends on `/news-sitemap.xml` continuing to publish. If it disappears, we'll need a section-page scraper.
+- **`"other"` change type dominates** the type distribution (~62%) — Haiku is putting many edits in the catch-all bucket. Prompt engineering or eval-pipeline feedback may help.
+- **Single-instance scheduler** is fine for v1 but is a known scaling cliff.
+- **No retroactive archive.** We only see edits to articles published *after* deployment. Historical articles are invisible.
+- **Spotlight selection on Landing** picks the highest-volatility article in the last 7 days, which can be dominated by page-chrome churn on edge cases. The discovery filter + chrome-stripping mitigates this; future work might bias toward articles with actual headline changes.

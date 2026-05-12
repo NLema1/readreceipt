@@ -252,6 +252,80 @@ def _do_purge_polluted_history(engine, *, dry_run: bool) -> None:
         )
 
 
+def _do_report_outlet_state(engine, outlets: list[str]) -> None:
+    """Read-only audit: per-outlet counts and zombie-state diagnostics.
+
+    Intended for RUN_CLEANUP_ON_BOOT so we can inspect outlets that are
+    EXCLUDED_PUBLIC_OUTLETS (and therefore invisible to the public API).
+    """
+    from datetime import datetime, timezone
+
+    def _aware(dt):
+        return dt if dt and dt.tzinfo else (dt.replace(tzinfo=timezone.utc) if dt else None)
+
+    now = datetime.now(timezone.utc)
+    with session_scope(engine) as s:
+        for outlet in outlets:
+            article_id_subq = select(Article.id).where(Article.outlet == outlet).scalar_subquery()
+
+            n_articles = s.execute(
+                select(func.count(Article.id)).where(Article.outlet == outlet)
+            ).scalar() or 0
+            n_versions = s.execute(
+                select(func.count(Version.id)).where(Version.article_id.in_(article_id_subq))
+            ).scalar() or 0
+            n_changes = s.execute(
+                select(func.count(Change.id)).where(Change.article_id.in_(article_id_subq))
+            ).scalar() or 0
+            n_evals = s.execute(
+                select(func.count(Evaluation.id)).where(
+                    Evaluation.change_id.in_(
+                        select(Change.id)
+                        .where(Change.article_id.in_(article_id_subq))
+                        .scalar_subquery()
+                    )
+                )
+            ).scalar() or 0
+
+            rows = list(s.execute(
+                select(Article.first_seen, Article.last_checked, Article.tracking_until)
+                .where(Article.outlet == outlet)
+            ).all())
+            if rows:
+                newest_first_seen = max(_aware(r[0]) for r in rows)
+                newest_last_checked = max(_aware(r[1]) for r in rows)
+                past_tracking = sum(1 for r in rows if _aware(r[2]) <= now)
+                zombie_polls = sum(1 for r in rows if _aware(r[1]) > _aware(r[2]))
+            else:
+                newest_first_seen = newest_last_checked = None
+                past_tracking = zombie_polls = 0
+
+            print(f"=== outlet={outlet!r} ===", flush=True)
+            print(f"  articles:            {n_articles}", flush=True)
+            print(f"  versions:            {n_versions}", flush=True)
+            print(f"  changes:             {n_changes}", flush=True)
+            print(f"  evaluations:         {n_evals}", flush=True)
+            print(f"  newest first_seen:   {newest_first_seen}", flush=True)
+            print(f"  newest last_checked: {newest_last_checked}", flush=True)
+            print(f"  past tracking_until: {past_tracking} (tracking window expired)", flush=True)
+            print(f"  zombie polls (bug):  {zombie_polls} (last_checked > tracking_until — should be 0)", flush=True)
+            print("", flush=True)
+
+        orphan_versions = s.execute(
+            select(func.count(Version.id)).where(
+                ~Version.article_id.in_(select(Article.id))
+            )
+        ).scalar() or 0
+        orphan_changes = s.execute(
+            select(func.count(Change.id)).where(
+                ~Change.article_id.in_(select(Article.id))
+            )
+        ).scalar() or 0
+        print("=== repo-wide orphan check ===", flush=True)
+        print(f"  orphan versions (no parent article): {orphan_versions}", flush=True)
+        print(f"  orphan changes  (no parent article): {orphan_changes}", flush=True)
+
+
 def _do_reset_history_for_outlets(
     engine, *, outlets: list[str], dry_run: bool
 ) -> None:

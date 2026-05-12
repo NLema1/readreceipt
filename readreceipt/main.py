@@ -80,6 +80,7 @@ def _maybe_run_boot_cleanup():
             _do_purge_non_articles,
             _do_purge_live_blogs,
             _do_purge_outlets,
+            _do_report_outlet_state,
             _do_reset_history_for_outlets,
         )
         cmd, _, suffix = raw.partition(":")
@@ -99,6 +100,12 @@ def _maybe_run_boot_cleanup():
                 log.error("RUN_CLEANUP_ON_BOOT=%r: no outlets supplied, skipping", raw)
                 return
             _do_reset_history_for_outlets(engine, outlets=outlets, dry_run=False)
+        elif cmd == "report_outlet_state":
+            outlets = [o.strip() for o in suffix.split(",") if o.strip()]
+            if not outlets:
+                log.error("RUN_CLEANUP_ON_BOOT=%r: no outlets supplied, skipping", raw)
+                return
+            _do_report_outlet_state(engine, outlets)
         else:
             log.error("RUN_CLEANUP_ON_BOOT=%r: unknown command, skipping", raw)
             return

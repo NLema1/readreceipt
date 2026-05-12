@@ -1,7 +1,19 @@
+import re
 from urllib.parse import urlparse, urlunparse
 
 
-LIVE_BLOG_PATH_PATTERNS = ("/live/", "/live-updates/", "/live-blog/")
+# A URL is a live blog if its path contains either:
+#   - a bare "/live/" segment (Guardian-style: /world/live/2026/...)
+#   - "live-updates", "live-blog", or "liveblog" at a slug-word boundary
+#     (after a `/` or `-`, ending at `-`, `/`, or end-of-path).
+# The boundary check matters for outlets like The Hill that fold the marker
+# into the slug — e.g. /homenews/5871514-live-updates-trump-2 — while still
+# rejecting unrelated substrings like /olive-oil-study or /alive-and-well.
+_LIVE_BLOG_RE = re.compile(
+    r"(?:^|/)live/"
+    r"|(?:^|[/-])(?:live-updates|live-blog|liveblog)(?=[-/]|$)",
+    re.IGNORECASE,
+)
 
 # Paths that are not editorial articles — BBC Sounds, podcasts, video players,
 # weather pages, TV programme guides. Discovery skips these and the cleanup
@@ -29,8 +41,7 @@ def canonicalize_url(url: str) -> str:
 
 
 def is_live_blog_url(url: str) -> bool:
-    path = urlparse(url).path.lower()
-    return any(pattern in path for pattern in LIVE_BLOG_PATH_PATTERNS)
+    return bool(_LIVE_BLOG_RE.search(urlparse(url).path))
 
 
 def should_skip_url(url: str) -> bool:

@@ -54,3 +54,26 @@ def test_is_live_blog_rejects_normal_article():
 def test_is_live_blog_does_not_match_unrelated_words():
     assert not is_live_blog_url("https://example.com/health/olive-oil-study")
     assert not is_live_blog_url("https://example.com/world/alive-and-well")
+
+
+def test_is_live_blog_matches_slug_embedded_live_updates():
+    # The Hill folds the marker into the slug: /homenews/<id>-live-updates-<rest>.
+    assert is_live_blog_url(
+        "https://thehill.com/homenews/5871514-live-updates-trump-2"
+    )
+
+
+def test_is_live_blog_matches_slug_embedded_live_blog():
+    assert is_live_blog_url(
+        "https://example.com/news/123-live-blog-election-night"
+    )
+
+
+def test_is_live_blog_matches_liveblog_one_word():
+    assert is_live_blog_url("https://example.com/world/liveblog/foo")
+
+
+def test_is_live_blog_rejects_live_followed_by_unrelated_slug():
+    # "live-music", "live-streaming" are not the live-blog marker.
+    assert not is_live_blog_url("https://example.com/arts/live-music-festival")
+    assert not is_live_blog_url("https://example.com/tech/123-live-streaming-tips")

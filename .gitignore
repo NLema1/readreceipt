@@ -21,3 +21,7 @@ frontend/dist/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Scratch screenshots from Playwright runs / manual UI verification
+/*.png
+.playwright-mcp/

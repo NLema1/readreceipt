@@ -154,7 +154,13 @@ def scrape_one_article(
             return ScrapeOutcome.UNCHANGED
 
         diff = compute_diff(latest.body_text, parsed.body_text)
-        skip_llm = should_skip_llm(diff, old_hash=latest.content_hash, new_hash=new_hash)
+        headline_changed = latest.headline.strip() != parsed.headline.strip()
+        skip_llm = should_skip_llm(
+            diff,
+            old_hash=latest.content_hash,
+            new_hash=new_hash,
+            headline_changed=headline_changed,
+        )
         latest_id = latest.id
         old_headline = latest.headline
         old_body = latest.body_text

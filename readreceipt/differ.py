@@ -49,7 +49,18 @@ def compute_diff(old: str, new: str) -> Diff:
     )
 
 
-def should_skip_llm(diff: Diff, *, old_hash: str, new_hash: str) -> bool:
+def should_skip_llm(
+    diff: Diff,
+    *,
+    old_hash: str,
+    new_hash: str,
+    headline_changed: bool = False,
+) -> bool:
+    # Headline edits are categorically meaningful — always classify them,
+    # even when the body diff is empty (the body-only Diff would otherwise
+    # report is_whitespace_only=True and skip the LLM).
+    if headline_changed:
+        return False
     if old_hash == new_hash:
         return True
     if diff.is_whitespace_only:

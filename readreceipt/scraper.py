@@ -132,6 +132,13 @@ _BOILERPLATE_LINE_PATTERNS = (
         r"(?:[,\s]+(?:facebook|instagram|tiktok|youtube|whatsapp|linkedin|twitter|x)){2,}",
         re.IGNORECASE,
     ),
+    # Bare ad-slot markers — NY Post (and others) put the word "Advertisement"
+    # on its own line where a banner ad sits. Trafilatura captures it, and
+    # because the slot count shifts between scrapes we'd otherwise log a
+    # bogus "change" every time the page re-renders with different ad fills.
+    re.compile(r"^advertisement$", re.IGNORECASE),
+    re.compile(r"^sponsored$", re.IGNORECASE),
+    re.compile(r"^sponsored\s+content$", re.IGNORECASE),
 )
 
 

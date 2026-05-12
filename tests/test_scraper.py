@@ -208,6 +208,41 @@ def test_chrome_line_keeps_quote_with_caps():
     )
 
 
+def test_chrome_line_flags_bare_advertisement_marker():
+    # NY Post (and others) put the literal word "Advertisement" on its own
+    # line where a banner ad sits. Trafilatura captures it and ad slot
+    # rearrangement between scrapes creates fake "changes".
+    assert _is_chrome_line("Advertisement")
+    assert _is_chrome_line("ADVERTISEMENT")
+    assert _is_chrome_line("advertisement")
+    assert _is_chrome_line("Sponsored")
+    assert _is_chrome_line("Sponsored Content")
+
+
+def test_chrome_line_keeps_advertisement_in_prose():
+    # The bare-marker rule only fires when "Advertisement" is the whole line.
+    assert not _is_chrome_line(
+        "Advertisement campaigns now make up a third of the company's revenue."
+    )
+    assert not _is_chrome_line(
+        "The new policy bans tobacco advertisement in all sports broadcasts."
+    )
+
+
+def test_filter_chrome_lines_strips_ad_markers_only():
+    body = (
+        "Residents were furious about the project.\n"
+        "Advertisement\n"
+        "The county investigation found the data center was to blame.\n"
+        "Advertisement\n"
+        "QTS told The Post it paid all retroactive charges.\n"
+    )
+    out = filter_chrome_lines(body)
+    assert "Advertisement" not in out
+    assert "Residents were furious" in out
+    assert "QTS told The Post" in out
+
+
 def test_filter_chrome_lines_drops_only_chrome():
     text = (
         "The Federal Reserve signaled it would cut rates next month.\n"

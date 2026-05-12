@@ -64,7 +64,7 @@ const METHOD = [
   { n: "01", t: "Snapshot", d: "A scheduler polls each outlet's RSS feed every 5 minutes. New articles enter a 7-day tracking window, captured every 30 minutes for the first day." },
   { n: "02", t: "Diff",     d: "Successive versions are compared at the word level. Whitespace, tracking pixels, and ad-tag noise are filtered before classification." },
   { n: "03", t: "Classify", d: "Claude Haiku 4.5 reads both versions in context and answers a single question: would a careful reader come away with a different conclusion?" },
-  { n: "04", t: "Receipt",  d: "Severity 1–5 with one-sentence rationale. Receipts stay public, searchable, and citable forever." },
+  { n: "04", t: "Receipt",  d: "Severity 1–5 with one-sentence rationale. Each receipt gets a permanent URL and stays in the public archive." },
 ];
 
 export default function Landing() {
@@ -197,7 +197,7 @@ export default function Landing() {
         }}
       >
         <div>
-          <Kicker>Editorial accountability · since 2026</Kicker>
+          <Kicker>Editorial accountability</Kicker>
           <h1
             style={{
               fontFamily: FONT.serif,
@@ -257,7 +257,7 @@ export default function Landing() {
                 borderRadius: 2,
               }}
             >
-              Paste a URL
+              Search receipts
             </button>
           </div>
           <div style={{ display: "flex", gap: 40, marginTop: 48 }}>
@@ -331,7 +331,7 @@ export default function Landing() {
                   borderLeft: `2px solid ${RR.red}`,
                 }}
               >
-                "{sd.featuredChange.summary}"
+                “{sd.featuredChange.summary}”
                 <div
                   style={{
                     fontFamily: FONT.mono,
@@ -706,7 +706,7 @@ export default function Landing() {
                 borderLeft: `2px solid ${RR.red}`,
               }}
             >
-              "{sd.featuredChange.summary}"
+              “{sd.featuredChange.summary}”
             </div>
           )}
           <div
@@ -779,7 +779,7 @@ export default function Landing() {
             { n: "01", t: "We pull RSS", d: "Eleven feeds, every 5 minutes." },
             { n: "02", t: "We diff",      d: "Headlines, body, sources, quotes." },
             { n: "03", t: "We classify",  d: "Severity 1–5; nine edit types." },
-            { n: "04", t: "You read",     d: "Receipts on the record, forever." },
+            { n: "04", t: "You read",     d: "Permanent URL, public archive." },
           ].map((s) => (
             <div key={s.n} style={{ display: "flex", gap: 14 }}>
               <div

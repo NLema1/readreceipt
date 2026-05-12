@@ -3,11 +3,28 @@ import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { FONT, RR, Mono } from "./atoms";
 import CommandPalette from "./CommandPalette";
 
+// Client-side hash scroll: React Router navigations don't trigger the
+// browser's native "scroll to #id" behavior, so we do it ourselves
+// whenever the location hash changes.
+function useHashScroll() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    const id = hash.slice(1);
+    // Wait one frame so the target route has rendered its sections.
+    const t = setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+    return () => clearTimeout(t);
+  }, [pathname, hash]);
+}
+
 const TABS = [
-  { to: "/feed",   label: "Feed",   match: ["/", "/feed"] },
-  { to: "/stats",  label: "Stats",  match: ["/stats"] },
-  { to: "/search", label: "Search", match: ["/search"] },
-  { to: "/method", label: "Method", match: ["/method"] },
+  { to: "/feed",    label: "Feed",   match: ["/", "/feed"] },
+  { to: "/stats",   label: "Stats",  match: ["/stats"] },
+  { to: "/search",  label: "Search", match: ["/search"] },
+  { to: "/#method", label: "Method", match: [] },
 ];
 
 function TopNav({ onOpenPalette }) {
@@ -159,6 +176,7 @@ function MobileTabbar() {
 
 export default function Layout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
+  useHashScroll();
 
   useEffect(() => {
     function onKey(e) {

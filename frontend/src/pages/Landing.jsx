@@ -402,7 +402,7 @@ export default function Landing() {
       </div>
 
       {/* HOW IT WORKS */}
-      <div style={{ padding: "72px 56px 56px" }}>
+      <div id="method" style={{ padding: "72px 56px 56px", scrollMarginTop: 80 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 40 }}>
           <div>
             <Kicker>The method</Kicker>
@@ -543,6 +543,26 @@ export default function Landing() {
           <Mono style={{ color: RR.mute, fontSize: 10, letterSpacing: "0.16em" }}>
             POLLED EVERY 5 MIN · CLASSIFIED BY CLAUDE HAIKU 4.5
           </Mono>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 24,
+            marginTop: 20,
+            paddingTop: 16,
+            borderTop: `1px solid ${RR.hair}`,
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: RR.soft,
+          }}
+        >
+          <a href="/about" style={{ color: RR.soft, textDecoration: "none" }}>About</a>
+          <a href="/#method" style={{ color: RR.soft, textDecoration: "none" }}>Method</a>
+          <a href="/takedown" style={{ color: RR.soft, textDecoration: "none" }}>Takedown</a>
+          <a href="/privacy" style={{ color: RR.soft, textDecoration: "none" }}>Privacy</a>
+          <a href="mailto:natenael.l@gmail.com" style={{ color: RR.soft, textDecoration: "none" }}>Contact</a>
         </div>
       </div>
     </div>
@@ -801,6 +821,29 @@ export default function Landing() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* MOBILE FOOTER */}
+      <div
+        style={{
+          padding: "24px 18px 32px",
+          borderTop: `1px solid ${RR.hair}`,
+          background: RR.paper2,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 18,
+          fontFamily: FONT.mono,
+          fontSize: 10,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: RR.soft,
+        }}
+      >
+        <a href="/about" style={{ color: RR.soft, textDecoration: "none" }}>About</a>
+        <a href="/#method" style={{ color: RR.soft, textDecoration: "none" }}>Method</a>
+        <a href="/takedown" style={{ color: RR.soft, textDecoration: "none" }}>Takedown</a>
+        <a href="/privacy" style={{ color: RR.soft, textDecoration: "none" }}>Privacy</a>
+        <a href="mailto:natenael.l@gmail.com" style={{ color: RR.soft, textDecoration: "none" }}>Contact</a>
       </div>
     </div>
   );

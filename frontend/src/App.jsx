@@ -5,6 +5,9 @@ import Feed from "./pages/Feed";
 import Detail from "./pages/Detail";
 import Search from "./pages/Search";
 import Stats from "./pages/Stats";
+import About from "./pages/About";
+import Takedown from "./pages/Takedown";
+import Privacy from "./pages/Privacy";
 
 export default function App() {
   return (
@@ -16,7 +19,10 @@ export default function App() {
           <Route path="/article/:id" element={<Detail />} />
           <Route path="/search" element={<Search />} />
           <Route path="/stats" element={<Stats />} />
-          <Route path="/method" element={<Navigate to="/" replace />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/takedown" element={<Takedown />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/method" element={<Navigate to="/#method" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

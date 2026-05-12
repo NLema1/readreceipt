@@ -223,7 +223,7 @@ export default function Landing() {
               margin: 0,
             }}
           >
-            We watch eleven major outlets, snapshot every article, and flag the moments
+            We watch nine major outlets, snapshot every article, and flag the moments
             a headline shifts, a fact moves, or a source quietly disappears.
           </p>
           <div style={{ display: "flex", gap: 12, marginTop: 32 }}>
@@ -609,7 +609,7 @@ export default function Landing() {
             color: RR.ink2,
           }}
         >
-          We watch eleven major outlets and post a receipt every time they
+          We watch nine major outlets and post a receipt every time they
           rewrite a headline, soften a quote, or quietly drop a source.
         </p>
         <div style={{ display: "flex", gap: 8, marginTop: 18 }}>

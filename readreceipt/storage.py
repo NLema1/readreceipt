@@ -123,6 +123,12 @@ def create_engine_only(database_url: str):
     return engine
 
 
+# Outlets whose data stays in the DB for historical record but is hidden from
+# every public-facing query (list endpoints, dashboard aggregates, scheduler
+# re-scrape). Editorial-positioning decision — see PR for Fix 2 batch.
+EXCLUDED_PUBLIC_OUTLETS: frozenset[str] = frozenset({"fox", "nypost"})
+
+
 @lru_cache(maxsize=None)
 def _session_factory(engine):
     return sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
@@ -227,6 +233,7 @@ def list_articles_with_change_stats(
             func.coalesce(func.max(Change.severity), 0).label("max_severity"),
         )
         .outerjoin(Change, Change.article_id == Article.id)
+        .where(Article.outlet.notin_(EXCLUDED_PUBLIC_OUTLETS))
         .group_by(Article.id)
     )
     if min_severity > 0:
@@ -266,6 +273,7 @@ def get_dashboard_stats(
     """
 
     def _apply_filters(stmt):
+        stmt = stmt.where(Article.outlet.notin_(EXCLUDED_PUBLIC_OUTLETS))
         if min_severity and min_severity > 0:
             stmt = stmt.where(Change.severity >= min_severity)
         if since:
@@ -342,7 +350,9 @@ def articles_due_for_rescrape(session: Session, *, now: datetime) -> list[Articl
     def _aware(dt: datetime) -> datetime:
         return dt if dt.tzinfo is not None else dt.replace(tzinfo=now.tzinfo)
 
-    candidates = list(session.execute(select(Article)).scalars())
+    candidates = list(session.execute(
+        select(Article).where(Article.outlet.notin_(EXCLUDED_PUBLIC_OUTLETS))
+    ).scalars())
     out = []
     for a in candidates:
         if _aware(a.tracking_until) <= now:

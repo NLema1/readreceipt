@@ -7,6 +7,7 @@ from sqlalchemy import select
 from readreceipt.storage import (
     Article,
     Change,
+    EXCLUDED_PUBLIC_OUTLETS,
     Version,
     get_dashboard_stats,
     list_articles_with_change_stats,
@@ -95,7 +96,7 @@ def build_app(*, engine) -> FastAPI:
     def get_article(article_id: int):
         with session_scope(engine) as s:
             article = s.get(Article, article_id)
-            if article is None:
+            if article is None or article.outlet in EXCLUDED_PUBLIC_OUTLETS:
                 raise HTTPException(status_code=404, detail="article not found")
             versions = list(s.execute(
                 select(Version)
@@ -148,6 +149,7 @@ def build_app(*, engine) -> FastAPI:
                 select(Change, Article)
                 .join(Article, Article.id == Change.article_id)
                 .where(Change.severity >= min_severity)
+                .where(Article.outlet.notin_(EXCLUDED_PUBLIC_OUTLETS))
                 .order_by(Change.classified_at.desc())
                 .limit(limit)
             )

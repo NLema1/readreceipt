@@ -178,7 +178,7 @@ export default function Stats() {
             { v: totalArticles.toLocaleString(), l: "Articles tracked", s: `Window · ${windowKey.toUpperCase()}`, t: "ink" },
             { v: totalEdits.toLocaleString(),    l: "Edits classified", s: "Severity ≥ 3", t: "ink" },
             { v: totalSig.toLocaleString(),      l: "Significant (S4+)", s: totalEdits ? `${((totalSig / totalEdits) * 100).toFixed(1)}% of edits` : "—", t: "red" },
-            { v: networkAvg,                     l: "Avg edits / article", s: "across 11 outlets", t: "ink" },
+            { v: networkAvg,                     l: "Avg edits / article", s: "across 9 outlets", t: "ink" },
           ].map((s, i) => (
             <div key={s.l} style={{ padding: "20px 24px", borderRight: i < 3 ? `1px solid ${RR.hair}` : "none" }}>
               <Kicker style={{ fontSize: 9 }}>{s.l}</Kicker>

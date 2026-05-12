@@ -6,16 +6,9 @@ import {
 } from "../components/atoms";
 import { fetchStats, fetchRecentChanges } from "../api";
 import { usePolling } from "../usePolling";
-
-function sinceFor(window) {
-  if (window === "all") return "all";
-  const now = Date.now();
-  const d =
-    window === "24h" ? 86400e3 :
-    window === "30d" ? 30 * 86400e3 :
-                       7 * 86400e3;
-  return new Date(now - d).toISOString();
-}
+import { sinceFor } from "../lib/time";
+import ErrorBanner from "../components/ErrorBanner";
+import { WINDOW_KEYS } from "../constants";
 
 export default function Stats() {
   const [windowKey, setWindowKey] = useState("7d");
@@ -144,7 +137,7 @@ export default function Stats() {
           </h1>
         </div>
         <div style={{ display: "flex", border: `1px solid ${RR.ink}`, borderRadius: 2, overflow: "hidden" }}>
-          {["24h", "7d", "30d", "all"].map((w) => {
+          {WINDOW_KEYS.map((w) => {
             const on = windowKey === w;
             return (
               <button
@@ -484,7 +477,7 @@ export default function Stats() {
           background: RR.paper,
         }}
       >
-        {["24h", "7d", "30d", "all"].map((w) => {
+        {WINDOW_KEYS.map((w) => {
           const on = windowKey === w;
           return (
             <button
@@ -592,6 +585,7 @@ export default function Stats() {
 
   return (
     <>
+      <ErrorBanner queries={[statsQuery, recentQuery]} />
       {desktop}
       {mobile}
     </>

@@ -1,0 +1,197 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - link "Readreceipt" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - link "Feed" [ref=e8] [cursor=pointer]:
+          - /url: /feed
+        - link "Stats" [ref=e9] [cursor=pointer]:
+          - /url: /stats
+        - link "Search" [ref=e10] [cursor=pointer]:
+          - /url: /search
+        - link "Method" [ref=e11] [cursor=pointer]:
+          - /url: /method
+    - button "Search headlines or paste a URL… ⌘K" [ref=e12] [cursor=pointer]:
+      - img [ref=e13]
+      - generic [ref=e16]: Search headlines or paste a URL…
+      - generic [ref=e17]: ⌘K
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]: Editorial accountability · since 2026
+          - heading "Every quiet edit to the news, on the record." [level=1] [ref=e23]:
+            - text: Every quiet edit
+            - text: to the news,
+            - text: on the record.
+          - paragraph [ref=e24]: We watch eleven major outlets, snapshot every article, and flag the moments a headline shifts, a fact moves, or a source quietly disappears.
+          - generic [ref=e25]:
+            - button "See today's tape →" [ref=e26] [cursor=pointer]
+            - button "Paste a URL" [ref=e27] [cursor=pointer]
+          - generic [ref=e28]:
+            - generic [ref=e29]:
+              - generic [ref=e30]: "11"
+              - generic [ref=e31]: OUTLETS TRACKED
+            - generic [ref=e32]:
+              - generic [ref=e33]: 1,340
+              - generic [ref=e34]: ARTICLES IN INDEX
+            - generic [ref=e35]:
+              - generic [ref=e36]: "377"
+              - generic [ref=e37]: EDITS · LAST 24H
+            - generic [ref=e38]:
+              - generic [ref=e39]: "129"
+              - generic [ref=e40]: SIGNIFICANT TODAY
+        - generic [ref=e42] [cursor=pointer]:
+          - generic [ref=e43]:
+            - generic [ref=e44]:
+              - img "New York Post" [ref=e163]
+              - generic [ref=e46]: NY Post
+            - generic [ref=e47]: RR-1948 · 18:12
+          - generic [ref=e49]:
+            - generic [ref=e50]: S·4
+            - generic [ref=e51]: ADDITION
+            - generic [ref=e164]: v48 of 48
+          - generic [ref=e165]:
+            - generic [ref=e166]: Did a K9 try to warn its handler about WHCD shooting suspect Cole Allen?
+            - generic [ref=e167]: Did a K9 try to warn its handler about WHCD shooting suspect Cole Allen?
+          - generic [ref=e168]:
+            - text: "\"Two of the three supporting story headlines have been replaced with different headlines; the main article's headline and primary subject (K9 warning) remain unchanged. This appears to be a routine update to related story links with no bearing on the central article's claims.\""
+            - generic [ref=e169]: — CLASSIFIED · CLAUDE HAIKU 4.5
+          - generic [ref=e55]:
+            - generic [ref=e56]: 47 EDITS LOGGED
+            - generic [ref=e57]: VOL · 91
+      - generic [ref=e59]:
+        - generic [ref=e60]: Currently watching
+        - generic [ref=e61]:
+          - img "The Guardian" [ref=e170]
+          - img "BBC News" [ref=e62]
+          - img "NPR" [ref=e63]
+          - img "Al Jazeera" [ref=e171]
+          - img "ProPublica" [ref=e172]
+          - img "NBC News" [ref=e173]
+          - img "CBS News" [ref=e64]
+          - img "The Hill" [ref=e174]
+          - img "Sky News" [ref=e65]
+          - img "Fox News" [ref=e66]
+          - img "New York Post" [ref=e175]
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - generic [ref=e70]: The method
+            - heading "How a single edit becomes a receipt." [level=2] [ref=e71]
+          - generic [ref=e72]: 5-MINUTE POLL · 7-DAY WINDOW
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - generic [ref=e76]: "01"
+              - generic [ref=e77]: STEP
+            - generic [ref=e78]: Snapshot
+            - paragraph [ref=e79]: A scheduler polls each outlet's RSS feed every 5 minutes. New articles enter a 7-day tracking window, captured every 30 minutes for the first day.
+          - generic [ref=e80]:
+            - generic [ref=e81]:
+              - generic [ref=e82]: "02"
+              - generic [ref=e83]: STEP
+            - generic [ref=e84]: Diff
+            - paragraph [ref=e85]: Successive versions are compared at the word level. Whitespace, tracking pixels, and ad-tag noise are filtered before classification.
+          - generic [ref=e86]:
+            - generic [ref=e87]:
+              - generic [ref=e88]: "03"
+              - generic [ref=e89]: STEP
+            - generic [ref=e90]: Classify
+            - paragraph [ref=e91]: "Claude Haiku 4.5 reads both versions in context and answers a single question: would a careful reader come away with a different conclusion?"
+          - generic [ref=e92]:
+            - generic [ref=e93]:
+              - generic [ref=e94]: "04"
+              - generic [ref=e95]: STEP
+            - generic [ref=e96]: Receipt
+            - paragraph [ref=e97]: Severity 1–5 with one-sentence rationale. Receipts stay public, searchable, and citable forever.
+      - generic [ref=e99]:
+        - generic [ref=e100]:
+          - generic [ref=e101]: The severity scale
+          - generic [ref=e102]: 5 levels · meaning-preservation test
+        - generic [ref=e103]:
+          - generic [ref=e104]:
+            - generic [ref=e107]: S·1
+            - generic [ref=e108]: Cosmetic
+            - generic [ref=e109]: Whitespace, punctuation, link swap.
+          - generic [ref=e110]:
+            - generic [ref=e113]: S·2
+            - generic [ref=e114]: Copy edit
+            - generic [ref=e115]: Rephrasing or word swap; no meaning shift.
+          - generic [ref=e116]:
+            - generic [ref=e119]: S·3
+            - generic [ref=e120]: Reframe
+            - generic [ref=e121]: Added context, softened tone, shifted emphasis.
+          - generic [ref=e122]:
+            - generic [ref=e125]: S·4
+            - generic [ref=e126]: Fact / quote
+            - generic [ref=e127]: A verifiable claim or attribution moved.
+          - generic [ref=e128]:
+            - generic [ref=e131]: S·5
+            - generic [ref=e132]: Correction
+            - generic [ref=e133]: Substantive correction, retraction, reversal.
+      - generic [ref=e134]:
+        - generic [ref=e135]:
+          - heading "On the tape right now" [level=3] [ref=e136]
+          - link "Open the full feed →" [ref=e137] [cursor=pointer]:
+            - /url: /feed
+        - generic [ref=e138]:
+          - 'button "43m ago BBC News BBC Southampton spying probe: Saints charged by EFL with spying on Middlesbrough ↳ 1 edits tracked HEADLINE S·3" [ref=e176] [cursor=pointer]':
+            - generic [ref=e177]: 43m ago
+            - generic [ref=e178]:
+              - img "BBC News" [ref=e179]
+              - generic [ref=e180]: BBC
+            - generic [ref=e181]:
+              - generic [ref=e182]: "Southampton spying probe: Saints charged by EFL with spying on Middlesbrough"
+              - generic [ref=e183]: ↳ 1 edits tracked
+            - generic [ref=e184]: HEADLINE
+            - generic [ref=e186]: S·3
+          - 'button "51m ago New York Post NY Post Maniac released from psych ward hours before he pushed elderly teacher to his death in subway: cops ↳ 1 edits tracked HEADLINE S·3" [ref=e187] [cursor=pointer]':
+            - generic [ref=e188]: 51m ago
+            - generic [ref=e189]:
+              - img "New York Post" [ref=e190]
+              - generic [ref=e191]: NY Post
+            - generic [ref=e192]:
+              - generic [ref=e193]: "Maniac released from psych ward hours before he pushed elderly teacher to his death in subway: cops"
+              - generic [ref=e194]: ↳ 1 edits tracked
+            - generic [ref=e195]: HEADLINE
+            - generic [ref=e197]: S·3
+          - button "1h ago New York Post NY Post 11 House seats move to GOP’s favor after major redistricting wins for Trump ↳ 1 edits tracked HEADLINE S·3" [ref=e198] [cursor=pointer]:
+            - generic [ref=e199]: 1h ago
+            - generic [ref=e200]:
+              - img "New York Post" [ref=e201]
+              - generic [ref=e202]: NY Post
+            - generic [ref=e203]:
+              - generic [ref=e204]: 11 House seats move to GOP’s favor after major redistricting wins for Trump
+              - generic [ref=e205]: ↳ 1 edits tracked
+            - generic [ref=e206]: HEADLINE
+            - generic [ref=e208]: S·3
+          - button "2h ago New York Post NY Post Blake Snell to make Dodgers’ season debut sooner than expected ↳ 2 edits tracked HEADLINE S·3" [ref=e209] [cursor=pointer]:
+            - generic [ref=e210]: 2h ago
+            - generic [ref=e211]:
+              - img "New York Post" [ref=e212]
+              - generic [ref=e213]: NY Post
+            - generic [ref=e214]:
+              - generic [ref=e215]: Blake Snell to make Dodgers’ season debut sooner than expected
+              - generic [ref=e216]: ↳ 2 edits tracked
+            - generic [ref=e217]: HEADLINE
+            - generic [ref=e219]: S·3
+      - generic [ref=e141]:
+        - generic [ref=e142]:
+          - generic [ref=e143]: Readreceipt
+          - generic [ref=e144]: An open ledger of editorial change. Open data, open API.
+        - generic [ref=e145]: POLLED EVERY 5 MIN · CLASSIFIED BY CLAUDE HAIKU 4.5
+  - generic [ref=e146]:
+    - button "Home" [ref=e147] [cursor=pointer]:
+      - img [ref=e148]
+      - generic [ref=e150]: Home
+    - button "Feed" [ref=e151] [cursor=pointer]:
+      - img [ref=e152]
+      - generic [ref=e154]: Feed
+    - button "Search" [ref=e155] [cursor=pointer]:
+      - img [ref=e156]
+      - generic [ref=e158]: Search
+    - button "Stats" [ref=e159] [cursor=pointer]:
+      - img [ref=e160]
+      - generic [ref=e162]: Stats

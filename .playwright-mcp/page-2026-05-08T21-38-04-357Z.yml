@@ -1,0 +1,78 @@
+- generic [ref=e675]:
+  - generic [ref=e676]:
+    - generic [ref=e677]:
+      - generic [ref=e678]: ReadReceipt
+      - generic [ref=e679]: / ARTICLE DETAIL
+    - button "← BACK TO TAPE" [ref=e680] [cursor=pointer]
+  - generic [ref=e682]:
+    - generic [ref=e683]:
+      - generic [ref=e684]:
+        - generic [ref=e685]: RECEIPT №
+        - generic [ref=e686]: RR-2026-05-08-101e
+      - generic [ref=e687]:
+        - img "THE GUARDIAN" [ref=e688]
+        - generic [ref=e689]: THE GUARDIAN
+    - separator [ref=e690]
+    - generic [ref=e691]: ARTICLE — CURRENT REVISION
+    - heading "Zack Polanski calls two-party politics dead after mayoral and council wins" [level=1] [ref=e692]
+    - link "READ ARTICLE AT THE GUARDIAN" [ref=e694] [cursor=pointer]:
+      - /url: https://www.theguardian.com/politics/2026/may/08/greens-unseat-labour-to-win-mayoral-election-in-hackney-zoe-garbett
+      - text: READ ARTICLE AT THE GUARDIAN
+      - generic [ref=e695]: ↗
+    - generic [ref=e696]:
+      - generic [ref=e697]:
+        - generic [ref=e698]: Tracked since
+        - generic [ref=e700]: MAY 08 14:31
+      - generic [ref=e701]:
+        - generic [ref=e702]: Versions logged
+        - generic [ref=e704]: "03"
+      - generic [ref=e705]:
+        - generic [ref=e706]: Window
+        - generic [ref=e708]: 3 H
+      - generic [ref=e709]:
+        - generic [ref=e710]: Last poll
+        - generic [ref=e712]: 3h ago
+    - separator [ref=e713]
+    - generic [ref=e715]:
+      - generic [ref=e716]:
+        - generic [ref=e717]: ★ VIBE SHIFT DETECTED ★
+        - generic [ref=e718]: SEV·4 ↑ INTENSIFIED
+      - generic [ref=e719]: "Council seat count revised from 184 to 190 new seats; progress tracking changed from \"258 council seats declared by early evening\" to \"116 of 136 councils having declared results by mid-evening.\" Also added substantive new information: Greens took overall control of Hackney council in addition to winning the mayoralty, with historical context (Labour in power for all but 8 years since 1964)."
+      - generic [ref=e720]:
+        - generic [ref=e721]: FACT EDIT · 17:21
+        - generic [ref=e722]: CLF · CLAUDE-HAIKU-4.5
+    - separator [ref=e723]
+    - generic [ref=e724]: ITEMIZED REVISION LOG
+    - generic [ref=e725]:
+      - 'button "FACT MAY 08 17:21 S·4 Council seat count revised from 184 to 190 new seats; progress tracking changed from \"258 council seats declared by early evening\" to \"116 of 136 councils having declared results by mid-evening.\" Also added substantive new information: Greens took overall control of Hackney council in addition to winning the mayoralty, with historical context (Labour in power for all but 8 years since 1964)." [ref=e727] [cursor=pointer]':
+        - generic [ref=e728]:
+          - generic [ref=e729]: FACT
+          - generic [ref=e731]: MAY 08 17:21
+          - generic [ref=e732]: S·4
+          - generic [ref=e733]: ▸
+        - generic [ref=e734]: "Council seat count revised from 184 to 190 new seats; progress tracking changed from \"258 council seats declared by early evening\" to \"116 of 136 councils having declared results by mid-evening.\" Also added substantive new information: Greens took overall control of Hackney council in addition to winning the mayoralty, with historical context (Labour in power for all but 8 years since 1964)."
+      - button "FACT MAY 08 15:03 S·4 Labour's council losses in Hastings changed from \"all nine councillors\" to \"seven of its nine councillors,\" altering the extent of Labour's defeat in that borough." [ref=e736] [cursor=pointer]:
+        - generic [ref=e737]:
+          - generic [ref=e738]: FACT
+          - generic [ref=e740]: MAY 08 15:03
+          - generic [ref=e741]: S·4
+          - generic [ref=e742]: ▸
+        - generic [ref=e743]: Labour's council losses in Hastings changed from "all nine councillors" to "seven of its nine councillors," altering the extent of Labour's defeat in that borough.
+    - separator [ref=e744]
+    - generic [ref=e745]:
+      - generic [ref=e746]: SUBTOTAL · COSMETIC
+      - generic [ref=e748]: "0"
+    - generic [ref=e749]:
+      - generic [ref=e750]: SUBTOTAL · MEANING
+      - generic [ref=e752]: "8"
+    - separator [ref=e753]
+    - generic [ref=e754]:
+      - generic [ref=e755]: VOLATILITY (TOTAL)
+      - generic [ref=e757]: "8"
+    - generic [ref=e780]: MAX SEVERITY · S·4
+    - separator [ref=e781]
+    - generic [ref=e782]: ✂ CUSTOMER COPY · KEEP FOR YOUR RECORDS ✂
+    - generic [ref=e783]:
+      - generic [ref=e841]: "*RR 2026 05 08 101E*"
+      - link "VIEW SOURCE → https://www.theguardian.com/politics/2026/may/08/greens-unseat-labour-to-win-mayoral-election-in-hackney-zoe-garbett" [ref=e843] [cursor=pointer]:
+        - /url: https://www.theguardian.com/politics/2026/may/08/greens-unseat-labour-to-win-mayoral-election-in-hackney-zoe-garbett

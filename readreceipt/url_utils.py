@@ -33,10 +33,8 @@ def is_live_blog_url(url: str) -> bool:
     return any(pattern in path for pattern in LIVE_BLOG_PATH_PATTERNS)
 
 
-def is_non_article_url(url: str) -> bool:
+def should_skip_url(url: str) -> bool:
+    if is_live_blog_url(url):
+        return True
     path = urlparse(url).path.lower()
     return any(pattern in path for pattern in NON_ARTICLE_PATH_PATTERNS)
-
-
-def should_skip_url(url: str) -> bool:
-    return is_live_blog_url(url) or is_non_article_url(url)

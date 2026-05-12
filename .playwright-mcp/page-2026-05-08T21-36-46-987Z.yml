@@ -1,0 +1,107 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: DEPT. OF EDITORIAL VERIFICATION · CIRC. INTERNAL
+      - generic [ref=e7]: ReadReceipt
+      - generic [ref=e8]: edits to news articles, accounted for · friday, may 8, 2026 · 17:36
+    - generic [ref=e9]:
+      - generic [ref=e10]: ROLLING LEDGER
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]: "0"
+          - generic [ref=e14]: ARTICLES
+        - generic [ref=e15]:
+          - generic [ref=e16]: "0"
+          - generic [ref=e17]: VERSIONS
+        - generic [ref=e18]:
+          - generic [ref=e19]: "0"
+          - generic [ref=e20]: EDITS LOGGED
+        - generic [ref=e21]:
+          - generic [ref=e22]: "0"
+          - generic [ref=e23]: VIBE SHIFTS
+  - generic [ref=e25]:
+    - generic [ref=e27]:
+      - generic [ref=e28]: TAPE № 01
+      - generic [ref=e29]: Today’s tape
+      - generic [ref=e30]: Articles in window · 24H · sorted by latest activity
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - generic [ref=e34]: SPOTLIGHT
+        - generic [ref=e35]: Most-revised story
+        - generic [ref=e36]: Highest volatility · WINDOW 24H · 0 changes in view
+      - generic [ref=e39]: Awaiting first revision.
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e42]: LEDGER
+        - generic [ref=e43]: By the numbers
+        - generic [ref=e44]: Outlets · types · cashier
+      - generic [ref=e46]:
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - generic [ref=e49]: Cashier
+            - generic [ref=e50]: FILTERS
+          - separator [ref=e51]
+          - generic [ref=e52]:
+            - generic [ref=e53]: MIN. SEVERITY
+            - generic [ref=e54]:
+              - button "S·1" [ref=e55] [cursor=pointer]
+              - button "S·2" [ref=e56] [cursor=pointer]
+              - button "S·3" [ref=e57] [cursor=pointer]
+              - button "S·4" [ref=e58] [cursor=pointer]
+              - button "S·5" [ref=e59] [cursor=pointer]
+          - generic [ref=e60]:
+            - generic [ref=e61]: WINDOW
+            - generic [ref=e62]:
+              - button "24h" [ref=e63] [cursor=pointer]
+              - button "7d" [ref=e64] [cursor=pointer]
+              - button "all" [ref=e65] [cursor=pointer]
+          - generic [ref=e66]:
+            - generic [ref=e67]:
+              - generic [ref=e68]: OUTLETS
+              - button "clear" [ref=e69] [cursor=pointer]
+            - generic [ref=e70]:
+              - button "THE GUARDIAN" [ref=e71] [cursor=pointer]
+              - button "BBC" [ref=e72] [cursor=pointer]
+              - button "NPR" [ref=e73] [cursor=pointer]
+              - button "AL JAZEERA" [ref=e74] [cursor=pointer]
+              - button "PROPUBLICA" [ref=e75] [cursor=pointer]
+              - button "NBC" [ref=e76] [cursor=pointer]
+              - button "CBS NEWS" [ref=e77] [cursor=pointer]
+              - button "THE HILL" [ref=e78] [cursor=pointer]
+              - button "SKY" [ref=e79] [cursor=pointer]
+              - button "FOX NEWS" [ref=e80] [cursor=pointer]
+              - button "NY POST" [ref=e81] [cursor=pointer]
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - generic [ref=e84]: EDIT TYPES
+              - button "clear" [ref=e85] [cursor=pointer]
+            - generic [ref=e86]:
+              - button "HEADLINE" [ref=e87] [cursor=pointer]
+              - button "FACT" [ref=e88] [cursor=pointer]
+              - button "QUOTE" [ref=e89] [cursor=pointer]
+              - button "SOURCE" [ref=e90] [cursor=pointer]
+              - button "ADDITION" [ref=e91] [cursor=pointer]
+              - button "DELETION" [ref=e92] [cursor=pointer]
+              - button "TEMPORAL" [ref=e93] [cursor=pointer]
+              - button "ROUTINE" [ref=e94] [cursor=pointer]
+              - button "OTHER" [ref=e95] [cursor=pointer]
+          - generic [ref=e96]:
+            - generic [ref=e97]: SEARCH / URL
+            - generic [ref=e98]:
+              - textbox "paste any article URL…" [ref=e99]
+              - generic [ref=e100]: ↩
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - generic [ref=e103]: Outlet ledger
+            - generic [ref=e104]: VOL.
+          - separator [ref=e105]
+          - generic [ref=e107]: no data yet
+        - generic [ref=e108]:
+          - generic [ref=e109]:
+            - generic [ref=e110]: Edit types
+            - generic [ref=e111]: N = 0
+          - separator [ref=e112]
+          - generic [ref=e114]: no data yet
+  - generic [ref=e115]:
+    - generic [ref=e116]: POLLED EVERY 30 MIN · CLASSIFIED BY CLAUDE HAIKU 4.5
+    - generic [ref=e117]: END OF TAPE — TEAR HERE ✂︎ — — — — — — — — — — — — — — — — — — —

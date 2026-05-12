@@ -1,10 +1,17 @@
+"""CLI maintenance commands.
+
+A note on deletion order: `evaluations.change_id` has a NOT NULL FK to
+`changes.id` with no ON DELETE CASCADE, so every path that deletes Change
+rows must first clear the matching Evaluation rows. The helpers below do
+this — call them instead of issuing raw deletes.
+"""
 import argparse
 import logging
 import sys
 from typing import Optional
 
 import feedparser
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
 from readreceipt import config
 from readreceipt.discovery import FeedSpec, load_feeds
@@ -16,22 +23,50 @@ from readreceipt.storage import (
     create_engine_and_tables,
     session_scope,
 )
+from readreceipt.url_utils import is_live_blog_url, should_skip_url
 
 
-def _delete_evaluations_for_changes(s, change_filter):
-    """Delete Evaluation rows whose change_id matches the given Change-row filter.
+# Batched IN-clause size for chunked deletes: small enough to stay well
+# under Postgres parameter limits and to surface progress in deploy logs
+# between commits.
+_PURGE_BATCH_SIZE = 100
 
-    Must run before any DELETE on Change rows because evaluations.change_id
-    has a NOT NULL FK back to changes.id (no ON DELETE CASCADE).
-    """
-    return s.execute(
+
+def _log(msg: str) -> None:
+    """Print and flush — Railway buffers stdout, so long-running loops
+    need this for progress to show up in deploy logs in real time."""
+    print(msg, flush=True)
+
+
+def _delete_history_for_articles(s, article_ids):
+    """Delete evaluations + changes + versions for the given article ids,
+    leaving Article rows intact. Returns {evals, changes, versions} counts."""
+    if not article_ids:
+        return {"evals": 0, "changes": 0, "versions": 0}
+    change_filter = Change.article_id.in_(article_ids)
+    n_evals = s.execute(
         delete(Evaluation).where(
             Evaluation.change_id.in_(
                 select(Change.id).where(change_filter).scalar_subquery()
             )
         )
     ).rowcount or 0
-from readreceipt.url_utils import is_live_blog_url, should_skip_url
+    n_changes = s.execute(delete(Change).where(change_filter)).rowcount or 0
+    n_versions = s.execute(
+        delete(Version).where(Version.article_id.in_(article_ids))
+    ).rowcount or 0
+    return {"evals": n_evals, "changes": n_changes, "versions": n_versions}
+
+
+def _delete_articles_cascade(s, article_ids):
+    """Delete articles and all their history. Returns counts dict."""
+    if not article_ids:
+        return {"evals": 0, "changes": 0, "versions": 0, "articles": 0}
+    counts = _delete_history_for_articles(s, article_ids)
+    counts["articles"] = s.execute(
+        delete(Article).where(Article.id.in_(article_ids))
+    ).rowcount or 0
+    return counts
 
 
 def _fetch_feed_for_dry_run(url: str) -> list[str]:
@@ -71,7 +106,6 @@ def _do_purge_outlets(engine, outlets: list[str], *, dry_run: bool) -> None:
         target_ids = [a.id for a in targets]
 
         print(f"Found {len(targets)} article(s) across outlets {outlets}:")
-        # Print a small sample so the user can sanity-check before deleting.
         for a in targets[:8]:
             print(f"  - [{a.outlet}] {a.url}")
         if len(targets) > 8:
@@ -83,110 +117,71 @@ def _do_purge_outlets(engine, outlets: list[str], *, dry_run: bool) -> None:
         if not target_ids:
             return
 
-        n_evals = _delete_evaluations_for_changes(
-            s, Change.article_id.in_(target_ids)
-        )
-        n_changes = s.execute(
-            delete(Change).where(Change.article_id.in_(target_ids))
-        ).rowcount
-        n_versions = s.execute(
-            delete(Version).where(Version.article_id.in_(target_ids))
-        ).rowcount
-        n_articles = s.execute(
-            delete(Article).where(Article.id.in_(target_ids))
-        ).rowcount
+        c = _delete_articles_cascade(s, target_ids)
         print(
-            f"Deleted {n_articles} article(s), "
-            f"{n_versions} version(s), {n_changes} change(s), "
-            f"{n_evals} evaluation(s)."
+            f"Deleted {c['articles']} article(s), {c['versions']} version(s), "
+            f"{c['changes']} change(s), {c['evals']} evaluation(s)."
         )
 
 
 def _purge_by_predicate(engine, predicate, *, label: str, dry_run: bool) -> None:
-    """Delete articles matching a URL predicate. Operates in batches and
-    flushes stdout aggressively so progress is visible in deploy logs even
-    when the orchestrator buffers heavily."""
-    import sys
-
-    def announce(msg: str) -> None:
-        print(msg, flush=True)
-
+    """Delete articles matching a URL predicate, in batches so a single
+    huge IN clause doesn't trip Postgres and so progress is visible."""
     with session_scope(engine) as s:
         all_articles = s.execute(select(Article)).scalars().all()
         targets = [a for a in all_articles if predicate(a.url)]
         target_ids = [a.id for a in targets]
 
-        announce(f"Found {len(targets)} {label} article(s):")
-        # Print first 25 + last 5 as a sample so the log doesn't drown.
+        _log(f"Found {len(targets)} {label} article(s):")
         sample_head = targets[:25]
         sample_tail = targets[-5:] if len(targets) > 30 else []
         for a in sample_head:
-            announce(f"  - [{a.outlet}] {a.url}")
+            _log(f"  - [{a.outlet}] {a.url}")
         if sample_tail:
-            announce(f"  ... ({len(targets) - len(sample_head) - len(sample_tail)} more) ...")
+            _log(f"  ... ({len(targets) - len(sample_head) - len(sample_tail)} more) ...")
             for a in sample_tail:
-                announce(f"  - [{a.outlet}] {a.url}")
+                _log(f"  - [{a.outlet}] {a.url}")
 
         if dry_run:
-            announce("DRY RUN — no rows deleted.")
+            _log("DRY RUN — no rows deleted.")
             return
         if not target_ids:
             return
 
-        # Delete in chunks so a single huge IN clause doesn't trip up Postgres
-        # and so we get progress logging between chunks.
-        BATCH = 100
-        n_changes = n_versions = n_articles = 0
-        n_evals = 0
+        totals = {"evals": 0, "changes": 0, "versions": 0, "articles": 0}
         try:
-            for i in range(0, len(target_ids), BATCH):
-                chunk = target_ids[i : i + BATCH]
-                announce(f"  ... batch {i // BATCH + 1}: deleting {len(chunk)} article(s)")
-                # Evaluations reference changes via FK with no ON DELETE CASCADE,
-                # so we must clear them before deleting changes.
-                n_evals += _delete_evaluations_for_changes(
-                    s, Change.article_id.in_(chunk)
-                )
-                n_changes += s.execute(
-                    delete(Change).where(Change.article_id.in_(chunk))
-                ).rowcount or 0
-                n_versions += s.execute(
-                    delete(Version).where(Version.article_id.in_(chunk))
-                ).rowcount or 0
-                n_articles += s.execute(
-                    delete(Article).where(Article.id.in_(chunk))
-                ).rowcount or 0
-                # Flush each batch so partial progress survives a crash.
+            for i in range(0, len(target_ids), _PURGE_BATCH_SIZE):
+                chunk = target_ids[i : i + _PURGE_BATCH_SIZE]
+                _log(f"  ... batch {i // _PURGE_BATCH_SIZE + 1}: deleting {len(chunk)} article(s)")
+                c = _delete_articles_cascade(s, chunk)
+                for k in totals:
+                    totals[k] += c[k]
+                # Commit each batch so partial progress survives a crash.
                 s.commit()
         except Exception as exc:
-            announce(f"  ERROR mid-purge: {exc!r}")
-            sys.stdout.flush()
+            _log(f"  ERROR mid-purge: {exc!r}")
             raise
 
-        announce(
-            f"Deleted {n_articles} article(s), "
-            f"{n_versions} version(s), {n_changes} change(s), "
-            f"{n_evals} evaluation(s)."
+        _log(
+            f"Deleted {totals['articles']} article(s), {totals['versions']} version(s), "
+            f"{totals['changes']} change(s), {totals['evals']} evaluation(s)."
         )
 
 
 def _do_purge_everything(engine, *, dry_run: bool) -> None:
     with session_scope(engine) as s:
-        articles = s.execute(select(Article)).scalars().all()
-        versions = s.execute(select(Version)).scalars().all()
-        changes = s.execute(select(Change)).scalars().all()
-        print(
-            f"Will delete EVERYTHING: {len(articles)} article(s), "
-            f"{len(versions)} version(s), {len(changes)} change(s). "
-            f"Discovery will repopulate the article table on the next tick."
-        )
         if dry_run:
+            n_articles = s.execute(select(func.count()).select_from(Article)).scalar() or 0
+            print(
+                f"Will delete EVERYTHING: {n_articles} article(s). "
+                f"Discovery will repopulate the article table on the next tick."
+            )
             print("DRY RUN — no rows deleted.")
             return
-        n_evals = s.execute(delete(Evaluation)).rowcount
-        n_changes = s.execute(delete(Change)).rowcount
-        n_versions = s.execute(delete(Version)).rowcount
-        n_articles = s.execute(delete(Article)).rowcount
+        n_evals = s.execute(delete(Evaluation)).rowcount or 0
+        n_changes = s.execute(delete(Change)).rowcount or 0
+        n_versions = s.execute(delete(Version)).rowcount or 0
+        n_articles = s.execute(delete(Article)).rowcount or 0
         print(
             f"Deleted: {n_articles} article(s), {n_versions} version(s), "
             f"{n_changes} change(s), {n_evals} evaluation(s). "
@@ -196,23 +191,20 @@ def _do_purge_everything(engine, *, dry_run: bool) -> None:
 
 def _do_reset_all_history(engine, *, dry_run: bool) -> None:
     with session_scope(engine) as s:
-        n_articles = s.execute(select(Article)).scalars().all()
-        n_versions = s.execute(select(Version)).scalars().all()
-        n_changes = s.execute(select(Change)).scalars().all()
-        print(
-            f"Will reset history across all {len(n_articles)} article(s): "
-            f"drop {len(n_versions)} version(s) and {len(n_changes)} "
-            f"change(s). Article rows preserved."
-        )
         if dry_run:
+            n_articles = s.execute(select(func.count()).select_from(Article)).scalar() or 0
+            print(
+                f"Will reset history across all {n_articles} article(s); "
+                f"article rows preserved."
+            )
             print("DRY RUN — no rows deleted.")
             return
-        deleted_evals = s.execute(delete(Evaluation)).rowcount
-        deleted_changes = s.execute(delete(Change)).rowcount
-        deleted_versions = s.execute(delete(Version)).rowcount
+        n_evals = s.execute(delete(Evaluation)).rowcount or 0
+        n_changes = s.execute(delete(Change)).rowcount or 0
+        n_versions = s.execute(delete(Version)).rowcount or 0
         print(
-            f"Cleared history: {deleted_changes} change(s), "
-            f"{deleted_versions} version(s), {deleted_evals} evaluation(s). "
+            f"Cleared history: {n_changes} change(s), "
+            f"{n_versions} version(s), {n_evals} evaluation(s). "
             f"Articles preserved; next tick will capture a fresh first "
             f"version for every tracked article."
         )
@@ -246,24 +238,16 @@ def _do_purge_polluted_history(engine, *, dry_run: bool) -> None:
             f"(interstitial) version:"
         )
         for a in articles:
-            print(
-                f"  - [{a.outlet}] matched={sample_markers.get(a.id)!r}  {a.url}"
-            )
+            print(f"  - [{a.outlet}] matched={sample_markers.get(a.id)!r}  {a.url}")
 
         if dry_run:
             print("DRY RUN — no rows deleted.")
             return
 
-        n_evals = _delete_evaluations_for_changes(s, Change.article_id.in_(ids))
-        n_changes = s.execute(
-            delete(Change).where(Change.article_id.in_(ids))
-        ).rowcount
-        n_versions = s.execute(
-            delete(Version).where(Version.article_id.in_(ids))
-        ).rowcount
+        c = _delete_history_for_articles(s, ids)
         print(
-            f"Cleared history: {n_changes} change(s), "
-            f"{n_versions} version(s), {n_evals} evaluation(s). "
+            f"Cleared history: {c['changes']} change(s), "
+            f"{c['versions']} version(s), {c['evals']} evaluation(s). "
             f"Articles preserved; next tick will capture a fresh first version."
         )
 
@@ -287,16 +271,10 @@ def _do_reset_history_for_outlets(
             return
         if not ids:
             return
-        n_evals = _delete_evaluations_for_changes(s, Change.article_id.in_(ids))
-        n_changes = s.execute(
-            delete(Change).where(Change.article_id.in_(ids))
-        ).rowcount
-        n_versions = s.execute(
-            delete(Version).where(Version.article_id.in_(ids))
-        ).rowcount
+        c = _delete_history_for_articles(s, ids)
         print(
-            f"Cleared history: {n_changes} change(s), "
-            f"{n_versions} version(s), {n_evals} evaluation(s). "
+            f"Cleared history: {c['changes']} change(s), "
+            f"{c['versions']} version(s), {c['evals']} evaluation(s). "
             f"Articles preserved; next tick will "
             f"capture a fresh first version with the cleaned scraper."
         )

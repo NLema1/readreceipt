@@ -29,5 +29,3 @@ export const OUTLETS = {
 };
 
 export const OUTLET_KEYS = Object.keys(OUTLETS);
-
-export const outletOf = (k) => OUTLETS[k] || null;

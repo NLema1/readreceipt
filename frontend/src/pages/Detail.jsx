@@ -8,6 +8,8 @@ import {
 import { fetchArticle } from "../api";
 import { usePolling } from "../usePolling";
 import { ageLabel, hostFromUrl, timeOfDay, wordDiff } from "../lib/format";
+import ErrorBanner from "../components/ErrorBanner";
+import { ARTICLE_ID_PREFIX } from "../constants";
 
 function StatCell({ value, label, tone, last }) {
   return (
@@ -243,7 +245,7 @@ export default function Detail() {
           ← Back to feed
         </button>
         <Mono style={{ color: RR.mute, fontSize: 10, letterSpacing: "0.16em" }}>
-          RR-{article.id} · TRACKED {Math.max(1, Math.round((Date.now() - new Date(article.first_seen).getTime()) / 3_600_000))}H · LIVE
+          {ARTICLE_ID_PREFIX}{article.id} · TRACKED {Math.max(1, Math.round((Date.now() - new Date(article.first_seen).getTime()) / 3_600_000))}H · LIVE
         </Mono>
       </div>
 
@@ -668,6 +670,7 @@ export default function Detail() {
 
   return (
     <>
+      <ErrorBanner queries={[articleQuery]} />
       {desktop}
       {mobile}
     </>

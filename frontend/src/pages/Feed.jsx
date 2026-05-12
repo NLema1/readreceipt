@@ -7,21 +7,14 @@ import {
 } from "../components/atoms";
 import { fetchArticles, fetchRecentChanges, fetchStats } from "../api";
 import { usePolling } from "../usePolling";
+import ErrorBanner from "../components/ErrorBanner";
+import { ageLabel } from "../lib/format";
+import { sinceFor } from "../lib/time";
+import { topChange, volatility, hoursTracked, sparkData } from "../lib/changes";
+import { ARTICLE_ID_PREFIX, WINDOW_KEYS } from "../constants";
 
-// ----------------------------------------------------------------------------
-// data helpers (Feed-local; do not depend on legacy lib/receipt.js)
-// ----------------------------------------------------------------------------
-
-function sinceFor(window) {
-  if (window === "all") return "all";
-  const now = Date.now();
-  const d =
-    window === "24h" ? 24 * 3600 * 1000 :
-    window === "7d"  ? 7  * 24 * 3600 * 1000 :
-    window === "30d" ? 30 * 24 * 3600 * 1000 :
-                       7  * 24 * 3600 * 1000;
-  return new Date(now - d).toISOString();
-}
+// Column layout for the desktop feed row + its header. Keep them in sync.
+const FEED_GRID_COLS = "88px 170px 80px 1fr 110px 70px";
 
 function changesByArticle(recent) {
   const map = new Map();
@@ -35,13 +28,6 @@ function changesByArticle(recent) {
   return map;
 }
 
-function topChange(changes) {
-  if (!changes || changes.length === 0) return null;
-  let best = changes[0];
-  for (const c of changes) if ((c.severity || 0) > (best.severity || 0)) best = c;
-  return best;
-}
-
 function latestChangeIso(changes) {
   if (!changes || changes.length === 0) return null;
   let latest = null;
@@ -51,32 +37,6 @@ function latestChangeIso(changes) {
     if (!latest || iso > latest) latest = iso;
   }
   return latest;
-}
-
-function volatility(changes) {
-  if (!changes) return 0;
-  return changes.reduce((s, c) => s + (c.severity || 0), 0);
-}
-
-function ageLabel(iso) {
-  if (!iso) return "—";
-  const diff = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
-function hoursTracked(firstSeenIso) {
-  if (!firstSeenIso) return 0;
-  return Math.max(0, Math.round((Date.now() - new Date(firstSeenIso).getTime()) / 3_600_000));
-}
-
-// Spark data: fake-but-consistent per article id, scaled to its change count
-function sparkData(id, changeCount) {
-  const seed = id || 1;
-  const base = Math.max(2, Math.min(changeCount || 2, 14));
-  return Array.from({ length: 8 }, (_, i) => ((seed * 7 + i * i * 3) % 14) + 1 + (i === 7 ? base / 2 : 0));
 }
 
 // ----------------------------------------------------------------------------
@@ -97,7 +57,7 @@ function FilterBar({ window, setWindow, sev, setSev, types, setTypes }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Kicker style={{ fontSize: 9 }}>Window</Kicker>
           <div style={{ display: "flex", border: `1px solid ${RR.ink}`, borderRadius: 2, overflow: "hidden" }}>
-            {["24h", "7d", "30d", "all"].map((w) => {
+            {WINDOW_KEYS.map((w) => {
               const active = window === w;
               return (
                 <button
@@ -263,7 +223,7 @@ function FeedRow({ article, top, latestIso, vol, onOpen, highlight }) {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "88px 170px 80px 1fr 110px 70px",
+        gridTemplateColumns: FEED_GRID_COLS,
         gap: 20,
         padding: "20px 0",
         alignItems: "flex-start",
@@ -276,7 +236,7 @@ function FeedRow({ article, top, latestIso, vol, onOpen, highlight }) {
           {ageLabel(latestIso || article.first_seen)}
         </Mono>
         <Mono style={{ fontSize: 9, color: RR.mute, letterSpacing: "0.14em", marginTop: 2, display: "block" }}>
-          RR-{article.id}
+          {ARTICLE_ID_PREFIX}{article.id}
         </Mono>
       </div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 36 }}>
@@ -576,7 +536,7 @@ export default function Feed() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "88px 170px 80px 1fr 110px 70px",
+            gridTemplateColumns: FEED_GRID_COLS,
             gap: 20,
             padding: "14px 0",
             borderBottom: `1px solid ${RR.ink}`,
@@ -743,6 +703,7 @@ export default function Feed() {
 
   return (
     <>
+      <ErrorBanner queries={[articlesQuery, recentQuery, statsQuery]} />
       {desktop}
       {mobile}
     </>

@@ -2,23 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FONT, RR, Mono, OutletMark, SevPill, TypeTag } from "./atoms";
 import { fetchArticles } from "../api";
+import { looksLikeUrl, normalizeUrl } from "../lib/url";
+import { DEBOUNCE_MS } from "../constants";
 
 const INK_OVERLAY = "#0a0805";
 const INK_LINE = "#2a241b";
 const INK_TEXT = "#f6f1e6";
 const INK_DIM = "#9c9077";
-
-function looksLikeUrl(s) {
-  const t = s.trim();
-  if (!t) return false;
-  return /^https?:\/\//i.test(t) || /^www\./i.test(t);
-}
-
-function normalizeUrl(s) {
-  const t = s.trim();
-  if (/^www\./i.test(t)) return `https://${t}`;
-  return t;
-}
 
 const FILTER_SHORTCUTS = [
   { key: "f", label: "Open feed",                go: "/feed" },
@@ -78,7 +68,7 @@ export default function CommandPalette({ open, onClose }) {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }, 180);
+    }, DEBOUNCE_MS.COMMAND_PALETTE);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [q, open]);
 

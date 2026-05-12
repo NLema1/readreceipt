@@ -7,32 +7,16 @@ import {
 } from "../components/atoms";
 import { fetchArticles } from "../api";
 import { ageLabel } from "../lib/format";
+import { sinceFor } from "../lib/time";
+import { looksLikeUrl, normalizeUrl } from "../lib/url";
+import {
+  ARTICLE_ID_PREFIX,
+  DEBOUNCE_MS,
+  WINDOW_KEYS,
+  WINDOW_LABELS,
+} from "../constants";
 
-const WINDOWS = [
-  { k: "24h", l: "Last 24 hours" },
-  { k: "7d",  l: "Last 7 days" },
-  { k: "30d", l: "Last 30 days" },
-  { k: "all", l: "All time" },
-];
-
-function sinceFor(window) {
-  if (window === "all") return "all";
-  const now = Date.now();
-  const d = window === "24h" ? 86400e3 : window === "30d" ? 30 * 86400e3 : 7 * 86400e3;
-  return new Date(now - d).toISOString();
-}
-
-function looksLikeUrl(s) {
-  const t = s.trim();
-  if (!t) return false;
-  return /^https?:\/\//i.test(t) || /^www\./i.test(t);
-}
-
-function normalizeUrl(s) {
-  const t = s.trim();
-  if (/^www\./i.test(t)) return `https://${t}`;
-  return t;
-}
+const WINDOWS = WINDOW_KEYS.map((k) => ({ k, l: WINDOW_LABELS[k] }));
 
 function highlight(text, q) {
   if (!q) return text;
@@ -108,7 +92,7 @@ export default function Search() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }, 220);
+    }, DEBOUNCE_MS.SEARCH);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [q, outlets, types, minSev, windowKey]);
 
@@ -189,7 +173,7 @@ export default function Search() {
                 cursor: "pointer",
               }}
             >
-              Open RR-{resolved.jumpTo} →
+              Open {ARTICLE_ID_PREFIX}{resolved.jumpTo} →
             </button>
             <span style={{ fontSize: 13, color: RR.ink2 }}>{resolved.headline}</span>
           </div>
@@ -424,7 +408,7 @@ export default function Search() {
                 {highlight(a.headline, q)}
               </div>
               <div style={{ marginTop: 10, display: "flex", gap: 18, alignItems: "center" }}>
-                <Mono style={{ fontSize: 10, color: RR.soft, letterSpacing: "0.14em" }}>RR-{a.id}</Mono>
+                <Mono style={{ fontSize: 10, color: RR.soft, letterSpacing: "0.14em" }}>{ARTICLE_ID_PREFIX}{a.id}</Mono>
                 <Mono style={{ fontSize: 10, color: RR.soft, letterSpacing: "0.14em" }}>
                   {a.change_count || 0} EDITS
                 </Mono>

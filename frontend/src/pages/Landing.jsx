@@ -7,6 +7,8 @@ import {
 } from "../components/atoms";
 import { fetchArticles, fetchArticle, fetchStats, fetchRecentChanges } from "../api";
 import { usePolling } from "../usePolling";
+import ErrorBanner from "../components/ErrorBanner";
+import { ARTICLE_ID_PREFIX } from "../constants";
 import { ageLabel } from "../lib/format";
 
 function Stat({ value, label, tone, size = 36 }) {
@@ -283,7 +285,7 @@ export default function Landing() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <OutletMark outlet={spotlight?.outlet || "guardian"} height={13} />
               <Mono style={{ color: RR.mute, fontSize: 10, letterSpacing: "0.12em" }}>
-                RR-{spotlight?.id ?? "—"} · {sd?.classifiedAtTime || ""}
+                {ARTICLE_ID_PREFIX}{spotlight?.id ?? "—"} · {sd?.classifiedAtTime || ""}
               </Mono>
             </div>
             <Hair />
@@ -805,6 +807,9 @@ export default function Landing() {
 
   return (
     <>
+      <ErrorBanner
+        queries={[articlesQuery, statsQuery, allTimeStatsQuery, recentQuery, spotlightQuery]}
+      />
       {desktop}
       {mobile}
     </>

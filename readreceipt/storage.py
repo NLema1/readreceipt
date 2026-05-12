@@ -1,6 +1,7 @@
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
+from typing import NamedTuple, Optional
 
 from sqlalchemy import (
     DateTime,
@@ -127,10 +128,6 @@ def _session_factory(engine):
     return sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
 
 
-def make_session_factory(engine):
-    return _session_factory(engine)
-
-
 @contextmanager
 def session_scope(engine):
     factory = _session_factory(engine)
@@ -144,9 +141,6 @@ def session_scope(engine):
     finally:
         session.close()
 
-
-from datetime import timedelta
-from typing import NamedTuple, Optional
 
 from sqlalchemy import func, select, and_
 

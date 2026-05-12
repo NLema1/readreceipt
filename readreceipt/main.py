@@ -82,15 +82,22 @@ def _maybe_run_boot_cleanup():
             _do_purge_outlets,
             _do_reset_history_for_outlets,
         )
-        if raw == "purge_non_articles":
+        cmd, _, suffix = raw.partition(":")
+        if cmd == "purge_non_articles":
             _do_purge_non_articles(engine, dry_run=False)
-        elif raw == "purge_live_blogs":
+        elif cmd == "purge_live_blogs":
             _do_purge_live_blogs(engine, dry_run=False)
-        elif raw.startswith("purge_outlet:"):
-            outlets = [o.strip() for o in raw.split(":", 1)[1].split(",") if o.strip()]
+        elif cmd == "purge_outlet":
+            outlets = [o.strip() for o in suffix.split(",") if o.strip()]
+            if not outlets:
+                log.error("RUN_CLEANUP_ON_BOOT=%r: no outlets supplied, skipping", raw)
+                return
             _do_purge_outlets(engine, outlets, dry_run=False)
-        elif raw.startswith("reset_outlet_history:"):
-            outlets = [o.strip() for o in raw.split(":", 1)[1].split(",") if o.strip()]
+        elif cmd == "reset_outlet_history":
+            outlets = [o.strip() for o in suffix.split(",") if o.strip()]
+            if not outlets:
+                log.error("RUN_CLEANUP_ON_BOOT=%r: no outlets supplied, skipping", raw)
+                return
             _do_reset_history_for_outlets(engine, outlets=outlets, dry_run=False)
         else:
             log.error("RUN_CLEANUP_ON_BOOT=%r: unknown command, skipping", raw)

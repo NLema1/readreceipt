@@ -178,3 +178,65 @@ def test_classifier_recovers_after_one_retry(engine, article_id):
         changes = s.query(Change).filter_by(article_id=article_id).all()
         assert len(changes) == 1
         assert changes[0].change_type == "fact_change"
+
+
+def test_cosmetic_headline_change_does_not_force_headline_type(engine, article_id):
+    # En-dash for hyphen in the vote count — purely typographic. The
+    # post-classification rule should NOT override the model's copy_edit
+    # call with a forced headline_change.
+    fetch = MagicMock(return_value="<html/>")
+    parse = MagicMock(side_effect=[
+        ParsedArticle(
+            headline="Senate votes 51-49 to advance bill",
+            body_text="The Senate voted to advance the bill on a 51-49 margin.",
+        ),
+        ParsedArticle(
+            headline="Senate votes 51–49 to advance bill",  # en-dash
+            body_text="The Senate voted to advance the bill on a 51–49 margin.",
+        ),
+    ])
+    classifier = MagicMock(return_value=Classification(
+        change_type="copy_edit", severity=1, summary="En-dash replaces hyphen in vote count.",
+    ))
+
+    scrape_one_article(engine=engine, article_id=article_id,
+                      fetch=fetch, parse=parse, classifier=classifier)
+    scrape_one_article(engine=engine, article_id=article_id,
+                      fetch=fetch, parse=parse, classifier=classifier)
+
+    with session_scope(engine) as s:
+        changes = s.query(Change).filter_by(article_id=article_id).all()
+        assert len(changes) == 1
+        assert changes[0].change_type == "copy_edit"
+        assert changes[0].severity == 1
+
+
+def test_substantive_headline_change_still_forces_headline_type(engine, article_id):
+    # A real word swap that flips framing — should be coerced to
+    # headline_change with severity >= 2 even if the model picks something
+    # else for the body.
+    fetch = MagicMock(return_value="<html/>")
+    parse = MagicMock(side_effect=[
+        ParsedArticle(
+            headline="Senate weighs new restrictions on hedge funds",
+            body_text="The Senate is considering new restrictions on hedge funds.",
+        ),
+        ParsedArticle(
+            headline="Senate moves to restrict hedge funds",
+            body_text="The Senate is considering new restrictions on hedge funds.",
+        ),
+    ])
+    classifier = MagicMock(return_value=Classification(
+        change_type="copy_edit", severity=1, summary="Minor word swap.",
+    ))
+
+    scrape_one_article(engine=engine, article_id=article_id,
+                      fetch=fetch, parse=parse, classifier=classifier)
+    scrape_one_article(engine=engine, article_id=article_id,
+                      fetch=fetch, parse=parse, classifier=classifier)
+
+    with session_scope(engine) as s:
+        changes = s.query(Change).filter_by(article_id=article_id).all()
+        assert len(changes) == 1
+        assert changes[0].change_type == "headline_change"
+        assert changes[0].severity >= 2

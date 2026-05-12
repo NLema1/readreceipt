@@ -1,4 +1,6 @@
 import logging
+import re
+import unicodedata
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Callable, Optional
@@ -15,6 +17,30 @@ from readreceipt.storage import (
     get_latest_version,
     session_scope,
 )
+
+
+_PUNCT_AND_DASH_RE = re.compile(r"[\s\W_]+")
+
+
+def _normalize_headline_for_substance(s: str) -> str:
+    """Collapse a headline to its substantive letter/digit signature.
+
+    Two headlines that produce the same signature differ only in cosmetic
+    ways (whitespace, punctuation, dash style, capitalization, glyph form).
+    A signature mismatch means at least one alphanumeric character differs.
+    """
+    # NFKC folds typographic variants (en-dash, em-dash, smart quotes) to
+    # canonical forms; we still strip them next, so this mainly catches
+    # NBSPs and ligature edge cases.
+    s = unicodedata.normalize("NFKC", s or "")
+    return _PUNCT_AND_DASH_RE.sub("", s).lower()
+
+
+def _headline_change_is_substantive(old: str, new: str) -> bool:
+    """True if the headlines differ by more than cosmetic punctuation /
+    whitespace / capitalization. False for en-dash-for-hyphen swaps, smart-
+    quote normalization, comma additions, and similar."""
+    return _normalize_headline_for_substance(old) != _normalize_headline_for_substance(new)
 
 
 log = logging.getLogger(__name__)
@@ -65,10 +91,11 @@ def _apply_post_classification_rules(
     """Server-side overrides applied after the LLM has classified a change.
 
     Rules:
-    1. If the headline text differs (after whitespace normalization), force
-       change_type to 'headline_change' and ensure severity >= 2. Headline
-       changes are categorically more important than body-only changes and
-       should never be downgraded to 'other' / 'addition' / etc.
+    1. If the headline differs SUBSTANTIVELY (more than whitespace,
+       punctuation, capitalization, or dash-style cosmetics), force
+       change_type to 'headline_change' and ensure severity >= 2. A
+       cosmetic-only headline diff is NOT enough to override the model —
+       the prompt now treats those as copy_edit.
     2. If change_type is 'addition' and the net body length grew by less than
        _SMALL_ADDITION_CHAR_THRESHOLD characters, clamp severity to 2. Small
        fact appends (a sentence completing a thought) shouldn't trigger the
@@ -81,7 +108,7 @@ def _apply_post_classification_rules(
     severity = classification.severity
     summary = classification.summary
 
-    if old_headline.strip() != new_headline.strip():
+    if _headline_change_is_substantive(old_headline, new_headline):
         change_type = "headline_change"
         severity = max(severity, 2)
 

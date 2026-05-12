@@ -3,11 +3,28 @@ from unittest.mock import MagicMock
 import pytest
 
 from readreceipt.classifier import (
+    CHANGE_TYPES,
     Classification,
     ClassifierError,
     classify_change,
     validate_classification,
 )
+
+
+def test_change_types_includes_new_categories():
+    # Batch 3 added these to cover the dominant "other" / missing-bucket cases.
+    for new_type in ("copy_edit", "correction", "attribution_update"):
+        assert new_type in CHANGE_TYPES
+
+
+def test_validate_classification_accepts_new_types():
+    for t in ("copy_edit", "correction", "attribution_update"):
+        c = validate_classification({
+            "change_type": t,
+            "severity": 2 if t == "copy_edit" else 4,
+            "summary": "x",
+        })
+        assert c.change_type == t
 
 
 def test_validate_classification_accepts_valid():

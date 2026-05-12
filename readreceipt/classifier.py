@@ -11,9 +11,12 @@ CHANGE_TYPES = {
     "headline_change",
     "fact_change",
     "quote_change",
+    "attribution_update",
     "source_removed",
     "addition",
     "deletion",
+    "correction",
+    "copy_edit",
     "temporal_update",
     "routine_update",
     "other",
@@ -36,7 +39,8 @@ claim (number, name, date, location, attribution, sequence of events, direct \
 quote) or about the framing the article endorses?
 
 If no, the change preserves meaning. Set meaning_preserved=true, \
-change_type="other", severity 1 or 2.
+change_type="copy_edit" (or the more specific cosmetic / cleanup category \
+where it applies), severity 1 or 2.
 
 If yes, the change shifts meaning. Set meaning_preserved=false and pick the \
 most specific change_type and an appropriate severity.
@@ -46,54 +50,108 @@ removal of "not", word swaps that look opposite) without parsing what those \
 words grammatically refer to in the article. Two phrasings with opposite \
 surface form often mean the same thing once you resolve what they modify.
 
+POLARITY / ADDITION-VS-REPLACEMENT CHECK
+
+Before classifying as quote_change, deletion, source_removed, or a \
+replacement of any kind, verify whether the original content is still \
+present elsewhere in the new version. If it has been moved (a paragraph \
+reordered, a quote relocated to a different position, a name now appearing \
+two paragraphs later), the change is an addition or relocation — not a \
+replacement. A "removed" quote that still appears somewhere in the new body \
+is not a quote_change. A "removed" source that still appears in another \
+clause is not source_removed. When in doubt, search the entire new body for \
+the original content before declaring it gone.
+
 CHANGE TYPES (only used when meaning shifts):
 - headline_change — the headline now frames the story differently or asserts \
-a different fact
+a different fact. Only use when the headline edit is itself meaningful \
+(reframe, fact change, tonal shift). Pure cosmetic headline edits \
+(punctuation, capitalization, typo fix) are copy_edit, not headline_change.
 - fact_change — a verifiable claim differs (number, name, date, location, \
 attribution, sequence)
-- quote_change — a direct quotation is altered, added, or removed
-- source_removed — an attributed source is removed or replaced
+- quote_change — a direct quotation by the same speaker is altered to say \
+something different. Pure relocation does not count.
+- attribution_update — a source is added, substituted, or strengthened \
+(e.g., "officials said" → "officials told The Post said"; bare claim now \
+attributed to a named source). Use this when an attribution APPEARS or \
+SHIFTS; use source_removed when an attribution DISAPPEARS.
+- source_removed — an attributed source is removed, leaving the claim \
+unsourced.
 - addition — substantive new information is introduced (paragraph, claim, \
 context that adds a new claim or shifts framing)
-- deletion — substantive information is removed
-- temporal_update — verb tense or time-reference changes that track real-world \
-progression on a developing story (e.g., "will arrive" → "arrived", \
-"is expected to" → "has", "earlier today" → "yesterday"). The underlying \
-event is the same; only the time-relative phrasing changed. Almost always \
-severity 1-2.
+- deletion — substantive information is removed and does not appear \
+anywhere else in the new version
+- correction — an explicit factual correction, retraction, or reversal of a \
+previously published claim. Use ONLY when the outlet is fixing a prior \
+factual error (statute name fixed, casualty number revised after sourcing \
+changed, a sentence retracted, an editor's note acknowledging the prior \
+version was wrong). Reframes, tonal shifts, and aggressive headline \
+intensifications are NOT corrections — they are headline_change or \
+addition/deletion at lower severity.
+- copy_edit — rephrasing, synonym swap, voice swap (active↔passive), \
+sentence reordering, ambiguity reduction, typo fix, punctuation, \
+capitalization standardization, em-dash/quote-glyph cleanup, duplicate-line \
+removal, audio-note or production-note cleanup, abbreviation \
+expansion/contraction. The article's claims are unchanged. \
+meaning_preserved=true.
+- temporal_update — verb tense or time-reference changes that track \
+real-world progression on a developing story (e.g., "will arrive" → \
+"arrived", "earlier today" → "yesterday"). The underlying event is the \
+same; only the time-relative phrasing changed.
 - routine_update — new sentences or paragraphs added to a developing story \
 that report subsequent ordinary events without altering any prior claim \
 (e.g., a press conference now happened, a flight landed, a vote count was \
 released). Distinguished from "addition" by the absence of any new \
-interpretive frame, contested claim, or unattributed assertion. Almost \
-always severity 1-2.
-- other — a meaningful change that fits none of the above
+interpretive frame, contested claim, or unattributed assertion.
+- other — a meaningful change that fits none of the above. Should be rare; \
+prefer the specific types when they apply.
 
-SEVERITY:
-1 — cosmetic only (whitespace, punctuation, link, image swap, abbreviation \
-expansion or contraction, typo fix). Requires meaning_preserved=true.
-2 — copy edit, no meaning change (rephrasing, word substitution, sentence \
-reorder, ambiguity reduction, temporal_update, routine_update). \
-meaning_preserved is usually true; for temporal_update / routine_update the \
-underlying event reality has progressed, but the article's claims have not \
-been contradicted, so meaning_preserved=false with severity 2 is also valid.
-3 — meaning shift in a non-essential element (added context, softened tone, \
-reframed emphasis). Requires meaning_preserved=false.
-4 — meaning shift in a key fact, quote, or attribution. Requires \
-meaning_preserved=false.
-5 — substantive correction, retraction, or major reversal. Requires \
-meaning_preserved=false.
+SEVERITY — ANCHORED TO THE PUBLISHED RUBRIC
+
+S·1 Cosmetic — whitespace, punctuation, link or image swap, capitalization \
+or em-dash standardization, typo fix, duplicate-line cleanup, audio/byline \
+boilerplate removal. Requires meaning_preserved=true. Pair with change_type \
+copy_edit (or temporal_update for pure tense fixes that don't reflect \
+real-world progression).
+
+S·2 Copy edit — rephrasing with no meaning shift, synonym swap, voice swap, \
+sentence reorder for clarity, ambiguity reduction, abbreviation \
+expansion/contraction, routine subsequent-event additions on a developing \
+story. meaning_preserved usually true. Pair with copy_edit, temporal_update, \
+or routine_update.
+
+S·3 Reframe — added context, softened tone, shifted emphasis, modal \
+tightening (could → will), characterization adjusted, headline tonal shift \
+without a new core fact. meaning_preserved=false. Typical change_type: \
+headline_change (when reframe is in the headline), addition (when reframe \
+is via added context), or other.
+
+S·4 Fact / quote — a verifiable claim, attribution, direct quote, name, \
+number, date, location, or sequence of events has MOVED. The reader would \
+draw a different factual conclusion. Pair with fact_change, quote_change, \
+attribution_update, or source_removed.
+
+S·5 Correction — RESERVED for explicit corrections, retractions, or factual \
+reversals where the outlet is fixing a prior factual error. Editor's note \
+language, "previously stated", "corrected to", explicit walk-backs. A \
+strong headline reframe or aggressive tonal shift is NOT S·5 — that's S·3 \
+headline_change. A casualty-count revision is S·4 fact_change unless framed \
+as a correction of a prior reported number. When in doubt between S·4 and \
+S·5, choose S·4 unless you can name the specific prior claim being \
+retracted.
 
 DO NOT AGGREGATE INDEPENDENT CHANGES
 
 When a single diff contains multiple separate changes, evaluate each \
-independently and return the severity of the highest single change, not the \
-sum. Three small changes do not stack into one large change unless they \
-collectively alter the article's meaning. If the changes are independent \
-(e.g., one typo fix in paragraph 1, one tense update in paragraph 4, one \
-abbreviation in paragraph 7), return the severity of the most significant \
-one, pick the change_type matching that one, and briefly mention the others \
-in the summary.
+independently and return the severity, change_type, and summary of the \
+single most significant change — not the aggregate. Three small changes \
+do not stack into one large change unless they collectively alter the \
+article's meaning. If the changes are independent (e.g., one typo fix in \
+paragraph 1, one tense update in paragraph 4, one abbreviation in paragraph \
+7), return the severity of the most significant one, pick the change_type \
+matching that one, and briefly mention the others in the summary as \
+secondary context. The receipt should reflect what a reader would notice as \
+the headline change, not the sum of janitorial edits.
 
 CALIBRATION EXAMPLES
 
@@ -104,7 +162,7 @@ Example A — copy edit:
 phrasings refer to evidence that Israel does have nukes. The grammatical \
 referent is the non-acknowledgment, not Israel's possession. Meaning is \
 preserved.
-  → meaning_preserved=true, change_type="other", severity=2,
+  → meaning_preserved=true, change_type="copy_edit", severity=2,
     summary="Rephrased an ambiguous clause more directly; meaning unchanged."
 
 Example B — fact change:
@@ -130,7 +188,7 @@ Example D — copy edit voice swap:
   New: "The committee rejected the bill."
   Same actors, same outcome, just active voice instead of passive. The reader \
 draws no different conclusion. This is style cleanup.
-  → meaning_preserved=true, change_type="other", severity=2,
+  → meaning_preserved=true, change_type="copy_edit", severity=2,
     summary="Passive-to-active voice rewrite; same actors and outcome."
 
 Example E — added context, no claim shift:
@@ -160,7 +218,7 @@ Example G — copy edit synonym swap:
   New: "issued a statement strongly criticizing the proposal"
   "Released" and "issued" are interchangeable in this context. No actor, \
 target, or stance has changed.
-  → meaning_preserved=true, change_type="other", severity=2,
+  → meaning_preserved=true, change_type="copy_edit", severity=2,
     summary="Synonym swap (released → issued); meaning unchanged."
 
 Example H — headline reframe:
@@ -180,7 +238,7 @@ Example I — punctuation only:
   A comma was removed. The sentence parses identically. This is below the \
 threshold of editorial significance and should normally have been filtered \
 before reaching you, but if it does reach you, treat it as cosmetic.
-  → meaning_preserved=true, change_type="other", severity=1,
+  → meaning_preserved=true, change_type="copy_edit", severity=1,
     summary="Comma removed after introductory adverb; no meaning change."
 
 Example J — borderline:
@@ -219,11 +277,17 @@ to a different speaker (fact_change, severity 4-5).
 
 HEADLINE PRIORITY
 
-If the headline text has changed between the two versions, the change_type \
-is always headline_change, regardless of what else changed in the body. The \
-headline is what most readers see; even a single-word swap there outweighs \
-body edits. Body changes inform the severity (more substantive headline \
-shifts → higher severity), but they do not override the type.
+If the headline text has changed in a meaningful way (reframe, fact change, \
+tonal shift, claim adjusted), the change_type is headline_change regardless \
+of what else changed in the body, because the headline is what most readers \
+see. A meaningful single-word swap in the headline ("rebuked" → "attacked", \
+"weighs" → "moves to", "could" → "will") outweighs any number of body copy \
+edits.
+
+If the headline text differs only cosmetically (typo fix, capitalization, \
+en-dash for hyphen, punctuation, glyph standardization) the change is \
+copy_edit, not headline_change. The "headline priority" rule is about \
+editorial substance, not about every byte of text in the title element.
 
 SMALL APPEND RULE
 
@@ -289,6 +353,55 @@ perspective was introduced. Per the small-append rule, this is severity 2.
   → meaning_preserved=false, change_type="addition", severity=2,
     summary="Added specific achievement (America's Cup 1977); \
 characterization unchanged."
+
+Example O — explicit correction (the rare S·5):
+  Old: "The bill cleared the Communications Act subcommittee on Tuesday."
+  New: "The bill cleared the Communications Decency Act subcommittee on \
+Tuesday. (This story has been corrected to fix the statute name.)"
+  An editor's note explicitly flags this as a correction to a prior factual \
+error. The fix itself is small (one statute-name word added) but it is \
+framed as a correction of a prior misstatement. This is exactly the case \
+S·5 is reserved for.
+  → meaning_preserved=false, change_type="correction", severity=5,
+    summary="Corrected statute name (Communications Act → Communications \
+Decency Act); flagged by editor's note."
+
+Example P — attribution added, not removed:
+  Old: "Three people were injured in the gunfire."
+  New: "Three people were injured in the gunfire, a criminal complaint \
+said."
+  An attribution clause was appended where there was none before, \
+strengthening the sourcing of an existing claim. The claim itself is \
+unchanged. Use attribution_update, not source_removed (nothing was \
+removed) and not addition (no new claim was introduced).
+  → meaning_preserved=false, change_type="attribution_update", severity=3,
+    summary="Added attribution to a criminal complaint, strengthening an \
+existing claim."
+
+Example Q — relocation, not deletion:
+  Old: "[paragraph 4] The senator declined to comment. [paragraph 8] \
+'I have not seen the report,' she added later."
+  New: "[paragraph 4] The senator initially declined to comment, but later \
+said, 'I have not seen the report.'"
+  The original quote ("I have not seen the report") still appears in the \
+new version — it was merged into the earlier paragraph. Nothing was \
+removed; content was relocated and tightened. This is copy_edit, not \
+quote_change or deletion. Before classifying as a removal of any kind, \
+verify the original content is genuinely gone from the new body.
+  → meaning_preserved=true, change_type="copy_edit", severity=2,
+    summary="Relocated and tightened a follow-up quote; underlying content \
+unchanged."
+
+Example R — cosmetic headline edit (does NOT force headline_change):
+  Old headline: "Senate votes 51-49 to advance bill"
+  New headline: "Senate votes 51–49 to advance bill"
+  The only difference is a typographic en-dash replacing a hyphen in the \
+vote count. No fact, frame, or tone has changed. Despite the rule that \
+meaningful headline edits dominate, a cosmetic headline edit is still \
+cosmetic.
+  → meaning_preserved=true, change_type="copy_edit", severity=1,
+    summary="Replaced hyphen with en-dash in headline vote count; no \
+meaning change."
 """
 
 CLASSIFY_TOOL = {

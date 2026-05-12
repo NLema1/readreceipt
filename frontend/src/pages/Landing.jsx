@@ -9,7 +9,7 @@ import { fetchArticles, fetchArticle, fetchStats, fetchRecentChanges } from "../
 import { usePolling } from "../usePolling";
 import ErrorBanner from "../components/ErrorBanner";
 import { ARTICLE_ID_PREFIX } from "../constants";
-import { ageLabel } from "../lib/format";
+import { ageLabel, stripWrappingQuotes } from "../lib/format";
 
 function Stat({ value, label, tone, size = 36 }) {
   return (
@@ -331,7 +331,7 @@ export default function Landing() {
                   borderLeft: `2px solid ${RR.red}`,
                 }}
               >
-                “{sd.featuredChange.summary}”
+                “{stripWrappingQuotes(sd.featuredChange.summary)}”
                 <div
                   style={{
                     fontFamily: FONT.mono,
@@ -726,7 +726,7 @@ export default function Landing() {
                 borderLeft: `2px solid ${RR.red}`,
               }}
             >
-              “{sd.featuredChange.summary}”
+              “{stripWrappingQuotes(sd.featuredChange.summary)}”
             </div>
           )}
           <div

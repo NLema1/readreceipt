@@ -1,5 +1,13 @@
 // Small, page-agnostic helpers.
 
+// Trim leading/trailing quote glyphs (straight, curly, single, double) from
+// a string. Used before wrapping a classifier summary in display quotes so
+// we don't get visually-stacked quote marks (e.g. `“…coalition."”`).
+export function stripWrappingQuotes(s) {
+  if (!s) return "";
+  return s.replace(/^[\s"'“”‘’]+|[\s"'“”‘’]+$/g, "");
+}
+
 export function ageLabel(iso) {
   if (!iso) return "—";
   const diff = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));

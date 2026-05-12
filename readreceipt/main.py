@@ -80,6 +80,7 @@ def _maybe_run_boot_cleanup():
             _do_purge_non_articles,
             _do_purge_live_blogs,
             _do_purge_outlets,
+            _do_purge_promotional,
             _do_report_outlet_state,
             _do_reset_history_for_outlets,
         )
@@ -88,6 +89,8 @@ def _maybe_run_boot_cleanup():
             _do_purge_non_articles(engine, dry_run=False)
         elif cmd == "purge_live_blogs":
             _do_purge_live_blogs(engine, dry_run=False)
+        elif cmd == "purge_promotional":
+            _do_purge_promotional(engine, dry_run=False)
         elif cmd == "purge_outlet":
             outlets = [o.strip() for o in suffix.split(",") if o.strip()]
             if not outlets:

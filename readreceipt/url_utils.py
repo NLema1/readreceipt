@@ -29,6 +29,25 @@ NON_ARTICLE_PATH_PATTERNS = (
     "/weather/",
 )
 
+# Affiliate / promotional listicles and deals pages. These look like articles
+# to a feed parser but are catalog content (rotating prices, swapped product
+# blocks) — they generate constant noisy "edits" with no editorial meaning.
+# URL-segment match only; we don't keyword-scan headlines because political
+# words like "deal" / "buy" / "gift" collide too easily with real news.
+PROMOTIONAL_PATH_PATTERNS = (
+    "/story/shopping/",            # USA Today shopping/deals/tickets section
+    "/story/money/home-services/", # USA Today home-services affiliate
+    "/recommends/",                # generic Reviewed / recommends
+    "/reviewed/",                  # generic outlet "Reviewed" verticals
+    "/coupons/",
+    "/promo-codes/",
+)
+
+
+def is_promotional_url(url: str) -> bool:
+    path = urlparse(url).path.lower()
+    return any(pattern in path for pattern in PROMOTIONAL_PATH_PATTERNS)
+
 
 def canonicalize_url(url: str) -> str:
     parsed = urlparse(url)
@@ -46,6 +65,8 @@ def is_live_blog_url(url: str) -> bool:
 
 def should_skip_url(url: str) -> bool:
     if is_live_blog_url(url):
+        return True
+    if is_promotional_url(url):
         return True
     path = urlparse(url).path.lower()
     return any(pattern in path for pattern in NON_ARTICLE_PATH_PATTERNS)

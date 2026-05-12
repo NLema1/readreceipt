@@ -23,7 +23,7 @@ from readreceipt.storage import (
     create_engine_and_tables,
     session_scope,
 )
-from readreceipt.url_utils import is_live_blog_url, should_skip_url
+from readreceipt.url_utils import is_live_blog_url, is_promotional_url, should_skip_url
 
 
 # Batched IN-clause size for chunked deletes: small enough to stay well
@@ -93,6 +93,10 @@ def _do_purge_live_blogs(engine, *, dry_run: bool) -> None:
 
 def _do_purge_non_articles(engine, *, dry_run: bool) -> None:
     _purge_by_predicate(engine, should_skip_url, label="non-article", dry_run=dry_run)
+
+
+def _do_purge_promotional(engine, *, dry_run: bool) -> None:
+    _purge_by_predicate(engine, is_promotional_url, label="promotional", dry_run=dry_run)
 
 
 def _do_purge_outlets(engine, outlets: list[str], *, dry_run: bool) -> None:
@@ -370,6 +374,11 @@ def main(argv: Optional[list[str]] = None) -> None:
         help="delete tracked articles that aren't editorial — live blogs, BBC Sounds, podcasts, audio/video, weather, programme guides",
     )
     parser.add_argument(
+        "--purge-promotional",
+        action="store_true",
+        help="delete promotional / affiliate listicles (USA Today shopping section, etc.) that generate noisy fake edits",
+    )
+    parser.add_argument(
         "--purge-outlet",
         action="append",
         default=None,
@@ -411,6 +420,12 @@ def main(argv: Optional[list[str]] = None) -> None:
         cfg = config.load()
         engine = create_engine_and_tables(cfg.database_url)
         _do_purge_non_articles(engine, dry_run=args.dry_run)
+        return
+
+    if args.purge_promotional:
+        cfg = config.load()
+        engine = create_engine_and_tables(cfg.database_url)
+        _do_purge_promotional(engine, dry_run=args.dry_run)
         return
 
     if args.purge_outlet:

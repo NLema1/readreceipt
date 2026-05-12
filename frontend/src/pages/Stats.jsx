@@ -13,15 +13,15 @@ import { WINDOW_KEYS } from "../constants";
 export default function Stats() {
   const [windowKey, setWindowKey] = useState("7d");
 
-  const since = sinceFor(windowKey);
-
+  // sinceFor(windowKey) returns a fresh ISO string each call — never put it
+  // in a usePolling deps array. Compute inside the lambda; key on windowKey.
   const statsQuery = usePolling(
-    () => fetchStats({ minSeverity: 0, since }),
-    60_000, [since]
+    () => fetchStats({ minSeverity: 0, since: sinceFor(windowKey) }),
+    60_000, [windowKey]
   );
   const recentQuery = usePolling(
-    () => fetchRecentChanges({ minSeverity: 1, since, limit: 500 }),
-    60_000, [since]
+    () => fetchRecentChanges({ minSeverity: 1, since: sinceFor(windowKey), limit: 500 }),
+    60_000, [windowKey]
   );
 
   const stats = statsQuery.data;

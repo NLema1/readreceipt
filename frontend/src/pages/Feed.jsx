@@ -387,21 +387,24 @@ export default function Feed() {
   const [types, setTypes] = useState(new Set()); // empty = all
   const [outlet, setOutlet] = useState("all");
 
-  const since = sinceFor(windowKey);
   const singleOutlet = outlet === "all" ? undefined : outlet;
   const typeArr = useMemo(() => Array.from(types), [types]);
   const useTypeFilter = typeArr.length > 0;
 
+  // sinceFor() returns a fresh ISO string every call (Date.now() advances),
+  // so it must NOT appear in deps arrays — it would re-trigger usePolling
+  // on every render. Compute it inside each lambda instead; the deps depend
+  // on the stable windowKey.
   const articlesQuery = usePolling(
     () =>
       fetchArticles({
         minSeverity: sev,
         outlet: singleOutlet,
-        since,
+        since: sinceFor(windowKey),
         changeTypes: useTypeFilter ? typeArr : undefined,
       }),
     30_000,
-    [sev, since, singleOutlet, typeArr.join(",")]
+    [sev, windowKey, singleOutlet, typeArr.join(",")]
   );
 
   const recentQuery = usePolling(
@@ -409,11 +412,11 @@ export default function Feed() {
       fetchRecentChanges({
         minSeverity: 1,
         outlet: singleOutlet,
-        since,
+        since: sinceFor(windowKey),
         limit: 500,
       }),
     30_000,
-    [since, singleOutlet]
+    [windowKey, singleOutlet]
   );
 
   const statsQuery = usePolling(
@@ -421,10 +424,10 @@ export default function Feed() {
       fetchStats({
         minSeverity: 1,
         outlet: singleOutlet,
-        since,
+        since: sinceFor(windowKey),
       }),
     30_000,
-    [since, singleOutlet]
+    [windowKey, singleOutlet]
   );
 
   const articles = articlesQuery.data || [];
